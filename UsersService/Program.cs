@@ -48,7 +48,7 @@ namespace UsersService.Api
             Host.CreateDefaultBuilder(args).UseSerilog()
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    webBuilder.UseUrls("http://*:8081")
+                    webBuilder.UseUrls("http://*:6008")
                     .UseStartup<Startup>();
                   //.UseUrls("http://localhost:7071/");
                 });

@@ -1,31 +1,38 @@
 using Azure.Identity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Graph;
 using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using System.Security;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using UsersService.Api.DataModel;
 using UsersService.Api.Model;
+using UsersService.Api.Responce;
 using VerifyAssetWorksAzureAD.Model;
 using ClientCredential = Microsoft.IdentityModel.Clients.ActiveDirectory.ClientCredential;
 
 namespace UsersService.Api.Controllers
 {
+
+    //[Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class AuthController : ControllerBase
@@ -33,10 +40,27 @@ namespace UsersService.Api.Controllers
 
 
         private readonly IConfiguration _configuration;
+        private readonly IConfiguration _baseconfiguration;
 
         public AuthController(IConfiguration configuration)
         {
             _configuration = configuration;
+            _baseconfiguration = configuration;
+
+            Dictionary<string, string> myConfiguration = new Dictionary<string, string>
+                {
+                    {"AzureAd:clientId", Environment.GetEnvironmentVariable("AZUREAD_CID")},
+                    {"AzureAd:TenantId", Environment.GetEnvironmentVariable("AZUREAD_TID")},
+                    {"AzureAd:clientSecret",Environment.GetEnvironmentVariable("AZUREAD_CLIENT_SECRET")},
+                    {"AzureAd:Instance",Environment.GetEnvironmentVariable("AZUREAD_INSTANCE")},
+                    {"EncryptDecryptkey",Environment.GetEnvironmentVariable("DECRYPTKEY")},
+                    {"Jwt:Key",Environment.GetEnvironmentVariable("JWT_KEY")},
+                    {"Jwt:Issuer", Environment.GetEnvironmentVariable("JWT_ISSUER")},
+                    {"Jwt:Audience", Environment.GetEnvironmentVariable("JWT_AUD")},
+                };
+            _configuration = new ConfigurationBuilder().AddInMemoryCollection(myConfiguration).Build();
+
+
         }
         [HttpPost]
         [Route("Logout")]
@@ -186,7 +210,19 @@ namespace UsersService.Api.Controllers
             }
             try
             {
+                MailRequest request = new MailRequest();
+                request.ToEmail = "ashu.setiya@assetworks.com";
+                request.frommail = "mamta.mishra@assetworks.com";
 
+                //request.ToEmail = "vijay.mani@tekmindz.com";
+                //request.frommail = "ashu.setiya@assetworks.com";
+
+
+                request.Body = "Your OTP Is:" + " " + "123456";
+                request.Subject = "OTP";
+
+                UsersService.Api.Mail.MailService mailService = new UsersService.Api.Mail.MailService(_baseconfiguration);
+                await mailService.SendEmailAsync(request);
                 HttpClient httpClient = new HttpClient();
            // StringContent stringContent = new StringContent(JsonSerializer.Serialize<UserNModel>(userN), Encoding.UTF8, "application/json");
             httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAccessToken()));
@@ -211,26 +247,25 @@ namespace UsersService.Api.Controllers
             catch (Exception ex)
             {
 
-                responce = @"{""StatusCode"":""400"",""Message"":""" + "Bad Request" + @"""}";
+                responce = @"{""StatusCode"":""400"",""Message"":""" + "Bad Request ," + ex.Message.ToString()  + @"""}";
                 return BadRequest(responce);
             }
 
         }
         [HttpPost]
-        
+        [AllowAnonymous]
         public async Task<IActionResult> Post([FromBody] AuthModel authparam)
         {
             string responce = string.Empty;
             if (string.IsNullOrEmpty(authparam.username) || string.IsNullOrEmpty(authparam.password))
             {
+               
                 responce = @"{""StatusCode"":""400"",""Message"":""" + "UserName or Password are blank" + @""",""data"": [{""token"":""" + null + @"""}]}";
                 return BadRequest(responce);
 
             }
             try
             {
-
-
                 string clientid = this._configuration["AzureAd:clientId"];
                 string TenantId = this._configuration["AzureAd:TenantId"];
                 string clientsecret = this._configuration["AzureAd:clientSecret"];
@@ -244,18 +279,40 @@ namespace UsersService.Api.Controllers
                 list.Add(new KeyValuePair<string, string>("grant_type", "password"));
                 list.Add(new KeyValuePair<string, string>("username", authparam.username));
                 list.Add(new KeyValuePair<string, string>("password", EncryptDecrypt.Decrypt(authparam.password, _configuration["EncryptDecryptkey"])));
-
-                list.Add(new KeyValuePair<string, string>("scope", "openid"));
+                list.Add(new KeyValuePair<string, string>("scope", "openid profile User.Read"));
+                 //list.Add(new KeyValuePair<string, string>("scope", "openid,api://7698cbed-7d9f-43b3-b9cd-a4f09b9b55ed/access_as_user"));
                 List<KeyValuePair<string, string>> list1 = list;
                 FormUrlEncodedContent formUrlEncodedContent = new FormUrlEncodedContent(list1);
                 HttpResponseMessage result = httpClient.PostAsync(str1, formUrlEncodedContent).Result;
 
                 if (result.IsSuccessStatusCode)
                 {
+                   
                     responce = result.Content.ReadAsStringAsync().Result;
-                   responce = @"{""StatusCode"":""200"",""Message"":""Login Success"",""data"":" + responce + "}";
 
-                    return Ok(responce);
+                    JObject jObj = JObject.Parse(responce);
+                    string id_token_AD = jObj["id_token"].ToString();
+                    var tokenString = GenerateJSONWebToken(authparam, id_token_AD);
+                    
+                    AuthResponce res= new AuthResponce() {
+                       StatusCode = 200,
+                       Message= "Login Success",
+                       data=new List<AuthData>() { 
+                       new AuthData() { 
+                       access_token=jObj["access_token"].ToString(),
+                       id_token=tokenString,
+                       refresh_token=jObj["refresh_token"].ToString(),
+                       resource="tokenString",
+                       token_type="Bearer"
+                       }
+                       }
+
+                    };
+
+                    //response = jObj["access_token"].ToString();
+                   // responce = @"{""StatusCode"":""200"",""Message"":""Login Success"",""Token"":"""+ tokenString + @""",""data"":" + responce + "}";
+
+                    return Ok(res);
                 }
                 else
                 {
@@ -441,6 +498,35 @@ namespace UsersService.Api.Controllers
             }
             return accessToken;
         }
+        [ApiExplorerSettings(IgnoreApi = true)]
+        [NonAction]
+        private string GenerateJSONWebToken(AuthModel userInfo,string id_token)
+        {
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var handler = new JwtSecurityTokenHandler();
+            var jwtSecurityToken = handler.ReadJwtToken(id_token);
+            
+            var claims = new[] {
+                new Claim(JwtRegisteredClaimNames.Sub, userInfo.username),
+                new Claim(JwtRegisteredClaimNames.Email, userInfo.username),
+                new Claim("roles", jwtSecurityToken.Claims.First(claim => claim.Type == "roles").Value),
+                new Claim("unique_name", jwtSecurityToken.Claims.First(claim => claim.Type == "unique_name").Value),
+                new Claim("oid", jwtSecurityToken.Claims.First(claim => claim.Type == "oid").Value),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+            
+           
+            var token = new JwtSecurityToken(_configuration["Jwt:Issuer"],
+                _configuration["Jwt:Audience"],
+                claims,
+                expires: DateTime.Now.AddMinutes(120),
+                signingCredentials: credentials);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
         [ApiExplorerSettings(IgnoreApi =true)]
         [NonAction]
         public string GetAdminAccessToken()
@@ -458,7 +544,8 @@ namespace UsersService.Api.Controllers
             list.Add(new KeyValuePair<string, string>("grant_type", "password"));
             list.Add(new KeyValuePair<string, string>("username", "superadmin@devopstekmindz.onmicrosoft.com"));
             list.Add(new KeyValuePair<string, string>("password", "Vpm@2820"));
-            list.Add(new KeyValuePair<string, string>("scope", "openid"));
+            //list.Add(new KeyValuePair<string, string>("scope", "openid"));
+            list.Add(new KeyValuePair<string, string>("scope", item+ "/.default"));
             List<KeyValuePair<string, string>> list1 = list;
             FormUrlEncodedContent formUrlEncodedContent = new FormUrlEncodedContent(list1);
             HttpResponseMessage result = httpClient.PostAsync(str1, formUrlEncodedContent).Result;
