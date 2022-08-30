@@ -292,7 +292,7 @@ namespace UsersService.Api.Controllers
 
                     JObject jObj = JObject.Parse(responce);
                     string id_token_AD = jObj["id_token"].ToString();
-                    var tokenString = GenerateJSONWebToken(authparam, id_token_AD);
+                    var tokenString = GenerateJSONWebToken( id_token_AD);
                     
                     AuthResponce res= new AuthResponce() {
                        StatusCode = 200,
@@ -352,6 +352,7 @@ namespace UsersService.Api.Controllers
         // POST api/<AuthController>
         [HttpPost]
         [Route("AuthNew")]
+        [NonAction]
         public async Task<IActionResult> AuthNew([FromBody] AuthModel authparam)
         {
             string responce = string.Empty;
@@ -457,9 +458,36 @@ namespace UsersService.Api.Controllers
 
                 if (result.IsSuccessStatusCode)
                 {
-                    responce = result.Content.ReadAsStringAsync().Result;
-                    responce = @"{""StatusCode"":""200"",""Message"":""Refresh token Success"",""data"":" + responce + "}";
-                    return Ok(responce);
+                    //responce = result.Content.ReadAsStringAsync().Result;
+                    //responce = @"{""StatusCode"":""200"",""Message"":""Refresh token Success"",""data"":" + responce + "}";
+                    //return Ok(responce);
+                        responce = result.Content.ReadAsStringAsync().Result;
+
+                        JObject jObj = JObject.Parse(responce);
+                        string id_token_AD = jObj["id_token"].ToString();
+                        var tokenString = GenerateJSONWebToken( id_token_AD);
+
+                        AuthResponce res = new AuthResponce()
+                        {
+                            StatusCode = 200,
+                            Message = "Login Success",
+                            data = new List<AuthData>() {
+                       new AuthData() {
+                       access_token=jObj["access_token"].ToString(),
+                       id_token=tokenString,
+                       refresh_token=jObj["refresh_token"].ToString(),
+                       resource="tokenString",
+                       token_type="Bearer"
+                       }
+                       }
+
+                        };
+
+                        //response = jObj["access_token"].ToString();
+                        // responce = @"{""StatusCode"":""200"",""Message"":""Login Success"",""Token"":"""+ tokenString + @""",""data"":" + responce + "}";
+
+                        return Ok(res);
+                    
                 }
                 else
                 {
@@ -500,7 +528,7 @@ namespace UsersService.Api.Controllers
         }
         [ApiExplorerSettings(IgnoreApi = true)]
         [NonAction]
-        private string GenerateJSONWebToken(AuthModel userInfo,string id_token)
+        private string GenerateJSONWebToken(string id_token)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
@@ -509,8 +537,8 @@ namespace UsersService.Api.Controllers
             var jwtSecurityToken = handler.ReadJwtToken(id_token);
             
             var claims = new[] {
-                new Claim(JwtRegisteredClaimNames.Sub, userInfo.username),
-                new Claim(JwtRegisteredClaimNames.Email, userInfo.username),
+                new Claim(JwtRegisteredClaimNames.Sub,  jwtSecurityToken.Claims.First(claim => claim.Type == "unique_name").Value),
+                new Claim(JwtRegisteredClaimNames.Email, jwtSecurityToken.Claims.First(claim => claim.Type == "unique_name").Value),
                 new Claim("roles", jwtSecurityToken.Claims.First(claim => claim.Type == "roles").Value),
                 new Claim("unique_name", jwtSecurityToken.Claims.First(claim => claim.Type == "unique_name").Value),
                 new Claim("oid", jwtSecurityToken.Claims.First(claim => claim.Type == "oid").Value),

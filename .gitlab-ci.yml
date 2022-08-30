@@ -1,0 +1,86 @@
+stages:
+  - Tag_Release
+  - Sonarqube
+  - App_Publish
+  - Docker_Image_Build
+
+
+Tag_Release:
+  stage: Tag_Release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest 
+  rules:
+    - if: $CI_COMMIT_BRANCH == "m4_qa_release"
+      when: always    
+  script:
+    - tag_time=`date "+%d-%m-%Y-%H-%M-%S"`
+    - export COMMIT_TAG="m4_qa_release-$tag_time"
+    - release-cli create --name "Release $COMMIT_TAG" --tag-name $COMMIT_TAG
+
+sonarqube-check:
+  stage: Sonarqube
+  image: mcr.microsoft.com/dotnet/sdk:6.0
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
+    GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - .sonar/cache
+  script: 
+      - "apt-get update"
+      - "apt-get install --yes openjdk-11-jre"
+      - "dotnet tool install --global dotnet-sonarscanner"
+      - "export PATH=\"$PATH:$HOME/.dotnet/tools\""
+      - "dotnet sonarscanner begin /k:\"engineering_assetworks_user-mgmt-service_AYKLkAN58qaHqDtZ5nLl\" /d:sonar.login=\"$SONAR_TOKEN\" /d:\"sonar.host.url=$SONAR_HOST_URL\" "
+      - "dotnet build"
+      - "dotnet sonarscanner end /d:sonar.login=\"$SONAR_TOKEN\""
+  allow_failure: true
+  only:
+    - /^(m4_qa_release)+-?.*$/
+  except:
+    - branches
+  tags: 
+   - user-mgmt  
+
+
+Dotnet_App_Publish:
+  stage: App_Publish
+  image: mcr.microsoft.com/dotnet/sdk:6.0
+  tags: 
+   - user-mgmt
+  only:
+    - /^(m4_qa_release)+-?.*$/
+  except:
+    - branches
+  script:
+   - mkdir publish 
+   - dotnet build
+   - dotnet publish UsersService/UsersService.Api.csproj -c Release -o publish/
+   - ls -lrth publish/
+  artifacts:
+    paths:
+      - /builds/engineering/assetworks/user-mgmt-service/UsersService/bin/Release/net6.0/UsersService.Api.dll
+      - publish/
+
+
+Docker_Image_Build:
+  image: docker:latest
+  stage: Docker_Image_Build
+  services:
+    - docker:dind
+  dependencies:
+    - Dotnet_App_Publish 
+  tags: 
+   - user-mgmt
+  script:
+    - cp -R publish/ UsersService/publish/
+    - ls -lrth UsersService/publish/
+    - docker build -t $IMAGE_TAG -f UsersService/Dockerfile .
+    - docker login -u $AZ_TOKEN_NAME -p $AZ_LOGIN_TOKEN $AZ_ECR_REPO
+    - docker push $IMAGE_TAG
+  only:
+    - /^(m4_qa_release)+-?.*$/
+  except:
+    - branches
+  when: manual
+  timeout: 5 minute

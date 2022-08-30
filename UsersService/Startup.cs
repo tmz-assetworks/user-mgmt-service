@@ -9,6 +9,9 @@ using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Protocols;
 using UsersService.Api.DataModel;
 using System.Text;
+using UsersService.Api.Service;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace UsersService.Api
 {
@@ -48,61 +51,6 @@ namespace UsersService.Api
                      IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["Jwt:Key"]))
                  };
              });
-            //services.AddCors(options =>
-            //{ 
-
-            //});
-            // services.AddTransient<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, Filters.ApiKeyRequirementHandler>();
-            //services.AddAuthorization(authConfig =>
-            //{
-            //    authConfig.AddPolicy("ApiKeyPolicy",
-            //        policyBuilder => policyBuilder
-            //            .AddRequirements(new Filters.ApiKeyRequirement(new[] { "my-secret-key" })));
-            //});
-            //services.Configure<JwtBearerOptions>(AzureADDefaults.JwtBearerAuthenticationScheme, options =>
-            //{
-            //    options.Authority += "/v2.0";
-            //    options.TokenValidationParameters.ValidAudiences = new string[] { options.Audience, $"api://{options.Audience}", "7698cbed-7d9f-43b3-b9cd-a4f09b9b55ed", "https://graph.microsoft.com" };
-            //    options.TokenValidationParameters.IssuerValidator = AadIssuerValidator.ForAadInstance(options.Authority).ValidateAadIssuer;
-            //    options.Events = new JwtBearerEvents();
-            //});
-
-            //services.AddTransient<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, Filters.AuthApplicationRole>();
-            //services.AddAuthorization(authConfig =>
-            //{
-            //    authConfig.AddPolicy("UserRole",
-            //        policyBuilder => policyBuilder
-            //            .AddRequirements(new Filters.RoleRequirement(new[] { "1" })));
-            //});
-            //services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            //  .AddMicrosoftIdentityWebApi(Configuration);
-            //services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
-            //{
-            //   // var configManager = new ConfigurationManager<OpenIdConnectConfiguration>("https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration", new OpenIdConnectConfigurationRetriever()); //1. need the 'new OpenIdConnect...'
-            //    var configManager = new ConfigurationManager<OpenIdConnectConfiguration>("https://login.microsoftonline.com/744aa8b0-bb99-4982-903f-52328216b4be/discovery/keys?appid=7698cbed-7d9f-43b3-b9cd-a4f09b9b55ed", new OpenIdConnectConfigurationRetriever());
-            //    OpenIdConnectConfiguration config = configManager.GetConfigurationAsync().Result;
-            //    var existingOnTokenValidatedHandler = options.Events.OnTokenValidated;
-            //    options.Events.OnTokenValidated = async context =>
-            //    {
-            //        await existingOnTokenValidatedHandler(context);
-            //        options.TokenValidationParameters.ValidateAudience = false;
-            //        options.TokenValidationParameters.ValidateIssuerSigningKey = false;
-            //        options.TokenValidationParameters.IssuerSigningKeys = config.SigningKeys;
-            //        options.TokenValidationParameters.RequireSignedTokens = false;
-            //        options.TokenValidationParameters.ValidIssuers = new[] { "https://sts.windows.net/744aa8b0-bb99-4982-903f-52328216b4be", "https://sts.windows.net/744aa8b0-bb99-4982-903f-52328216b4be/" };
-            //        options.TokenValidationParameters.ValidAudiences = new[] { "7698cbed-7d9f-43b3-b9cd-a4f09b9b55ed", "https://graph.microsoft.com" };
-            //        options.TokenValidationParameters.ValidateIssuer = false;
-            //        options.TokenValidationParameters.ValidateActor = false;
-            //        options.TokenValidationParameters.ValidateLifetime = false;
-
-
-            //        // Your code to add extra configuration that will be executed after the current event implementation.
-            //        //options.TokenValidationParameters
-
-
-
-            //    };
-            //});
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
@@ -136,7 +84,9 @@ namespace UsersService.Api
 
             
             services.AddAutoMapper(typeof(Startup));
-         }
+            services.AddHealthChecks()
+                .AddCheck<UsersServiceHealthCheck>("example_health_check");
+        }
 
        
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -171,6 +121,15 @@ namespace UsersService.Api
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapHealthChecks("/health", new HealthCheckOptions()
+                {
+                    ResultStatusCodes =
+                    {
+                        [HealthStatus.Healthy] = StatusCodes.Status200OK,
+                        [HealthStatus.Degraded] = StatusCodes.Status200OK,
+                        [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable
+                    }
+                });
             });
         }
     }
