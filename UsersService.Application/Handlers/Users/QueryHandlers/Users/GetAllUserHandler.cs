@@ -7,10 +7,11 @@ using System.Text;
 using System.Threading.Tasks;
 using UsersService.Core.Entities;
 using UsersService.Core.Repositories.Users;
+using UsersService.Core.Response;
 
 namespace UsersService.Application.Handlers.Assets.QueryHandlers
 {
-    public class GetAllUserHandler : IRequestHandler<GetAllUserQuery, List<UsersService.Core.Entities.Users>>
+    public class GetAllUserHandler : IRequestHandler<GetAllUserQuery, AllUserResponse>
     {
         private readonly IUserRepository _userRepo;
 
@@ -18,9 +19,10 @@ namespace UsersService.Application.Handlers.Assets.QueryHandlers
         {
             _userRepo = UserRepository;
         }
-        public async Task<List<UsersService.Core.Entities.Users>> Handle(GetAllUserQuery request, CancellationToken cancellationToken)
+        public async Task<AllUserResponse> Handle(GetAllUserQuery request, CancellationToken cancellationToken)
         {
-            return (List<UsersService.Core.Entities.Users>)await _userRepo.GetAllUsers();
+            var result= (AllUserResponse)await _userRepo.GetAllUsers(request.GetUserRequest);
+            return result;  
         }
        
     }

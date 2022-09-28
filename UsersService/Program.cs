@@ -45,13 +45,13 @@ namespace UsersService.Api
             }
         }
         public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args).UseSerilog()
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseUrls("http://*:6008")
-                    .UseStartup<Startup>();
-                  //.UseUrls("http://localhost:7071/");
-                });
+             Host.CreateDefaultBuilder(args)
+                 .ConfigureWebHostDefaults(webBuilder =>
+                 {
+                     webBuilder.UseStartup<Startup>()
+
+                     .UseUrls("http://*:6008");
+                 });
 
     }
 }

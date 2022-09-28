@@ -4,17 +4,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using UsersService.Core.Entities;
 using UsersService.Core.Response;
 
 namespace UsersService.Application.Queries
 {
-    public class GetByIdCustomersQuery : IRequest<AllCustomerResp>
+    public class CustomerDDLQuery : IRequest<List<CustomerData>>
     {
-        public long Id { get; set; }
-        public GetByIdCustomersQuery(long id)
-        {
-            Id = id;
-        }
+
     }
 }

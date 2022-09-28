@@ -23,8 +23,7 @@ namespace UsersService.Application.Handlers.Users.CommandHandlers.Users
             {
                 throw new ApplicationException("Issue with mapper");
             }
-
-            var updateuser = _UserRepo.DeleteUserAsync(UserEntitiy, UserEntitiy.Id,"USER");
+            var updateuser = _UserRepo.DeleteUserAsync(UserEntitiy, UserEntitiy.Id, "USER");
             var mapUserResponse = UsersMapper.Mapper.Map<UserResponse>(updateuser.Result);
             return mapUserResponse;
         }

@@ -22,7 +22,7 @@ namespace UsersService.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
 
-            modelBuilder.Entity("UsersService.Core.Entities.Countries", b =>
+            modelBuilder.Entity("UsersService.Core.Entities.City", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -30,27 +30,63 @@ namespace UsersService.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"), 1L, 1);
 
-                    b.Property<string>("createdBy")
+                    b.Property<string>("CityName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("createdOn")
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedOn")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("modifiedBy")
+                    b.Property<string>("ModifiedBy")
                         .IsRequired()
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("modifiedOn")
+                    b.Property<DateTime>("ModifiedOn")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(100)");
+                    b.Property<long>("StateId")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Countries");
+                    b.HasIndex("StateId");
+
+                    b.ToTable("City");
+                });
+
+            modelBuilder.Entity("UsersService.Core.Entities.Country", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"), 1L, 1);
+
+                    b.Property<string>("CountryName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ModifiedOn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Country");
                 });
 
             modelBuilder.Entity("UsersService.Core.Entities.Customers", b =>
@@ -69,20 +105,28 @@ namespace UsersService.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<long?>("CityID")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("CityName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<long?>("CountryID")
                         .IsRequired()
                         .HasColumnType("bigint");
 
-                    b.Property<DateTime>("DOB")
-                        .HasColumnType("datetime2");
+                    b.Property<string>("CountryName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<long?>("StateID")
                         .IsRequired()
                         .HasColumnType("bigint");
 
-                    b.Property<string>("city")
+                    b.Property<string>("StateName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("createdBy")
                         .IsRequired()
@@ -90,6 +134,14 @@ namespace UsersService.Infrastructure.Migrations
 
                     b.Property<DateTime>("createdOn")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("isActive")
                         .HasColumnType("bit");
@@ -103,6 +155,10 @@ namespace UsersService.Infrastructure.Migrations
 
                     b.Property<long>("phoneNumber")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("pointofcontact")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("userName")
                         .IsRequired()
@@ -119,6 +175,47 @@ namespace UsersService.Infrastructure.Migrations
                     b.HasIndex("StateID");
 
                     b.ToTable("Customers");
+                });
+
+            modelBuilder.Entity("UsersService.Core.Entities.OperatorUserMapper", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"), 1L, 1);
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<long>("LocationId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("ModifiedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("UsersId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsersId");
+
+                    b.ToTable("OperatorUserMapper");
                 });
 
             modelBuilder.Entity("UsersService.Core.Entities.Roles", b =>
@@ -151,40 +248,40 @@ namespace UsersService.Infrastructure.Migrations
                     b.ToTable("Roles");
                 });
 
-            modelBuilder.Entity("UsersService.Core.Entities.States", b =>
+            modelBuilder.Entity("UsersService.Core.Entities.State", b =>
                 {
-                    b.Property<long>("id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("id"), 1L, 1);
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"), 1L, 1);
 
-                    b.Property<long?>("CountryID")
+                    b.Property<long>("CountryId")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("createdBy")
+                    b.Property<string>("CreatedBy")
                         .IsRequired()
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("createdOn")
+                    b.Property<DateTime>("CreatedOn")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("modifiedBy")
+                    b.Property<string>("ModifiedBy")
                         .IsRequired()
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("modifiedOn")
+                    b.Property<DateTime>("ModifiedOn")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("name")
+                    b.Property<string>("StateName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("id");
+                    b.HasKey("Id");
 
-                    b.HasIndex("CountryID");
+                    b.HasIndex("CountryId");
 
-                    b.ToTable("States");
+                    b.ToTable("State");
                 });
 
             modelBuilder.Entity("UsersService.Core.Entities.UserRoles", b =>
@@ -240,9 +337,8 @@ namespace UsersService.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(100)");
+                    b.Property<long?>("CityID")
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("CountryID")
                         .IsRequired()
@@ -292,10 +388,6 @@ namespace UsersService.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("bigint");
 
-                    b.Property<string>("UserPrincipalName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(200)");
-
                     b.Property<string>("ZipCode")
                         .IsRequired()
                         .HasColumnType("nvarchar(100)");
@@ -303,6 +395,10 @@ namespace UsersService.Infrastructure.Migrations
                     b.Property<string>("name")
                         .IsRequired()
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("userPrincipalName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
 
@@ -315,15 +411,26 @@ namespace UsersService.Infrastructure.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("UsersService.Core.Entities.City", b =>
+                {
+                    b.HasOne("UsersService.Core.Entities.State", "State")
+                        .WithMany("City")
+                        .HasForeignKey("StateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("State");
+                });
+
             modelBuilder.Entity("UsersService.Core.Entities.Customers", b =>
                 {
-                    b.HasOne("UsersService.Core.Entities.Countries", "Country")
+                    b.HasOne("UsersService.Core.Entities.Country", "Country")
                         .WithMany()
                         .HasForeignKey("CountryID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("UsersService.Core.Entities.States", "State")
+                    b.HasOne("UsersService.Core.Entities.State", "State")
                         .WithMany()
                         .HasForeignKey("StateID")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -334,11 +441,24 @@ namespace UsersService.Infrastructure.Migrations
                     b.Navigation("State");
                 });
 
-            modelBuilder.Entity("UsersService.Core.Entities.States", b =>
+            modelBuilder.Entity("UsersService.Core.Entities.OperatorUserMapper", b =>
                 {
-                    b.HasOne("UsersService.Core.Entities.Countries", "Country")
+                    b.HasOne("UsersService.Core.Entities.Users", "Users")
                         .WithMany()
-                        .HasForeignKey("CountryID");
+                        .HasForeignKey("UsersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("UsersService.Core.Entities.State", b =>
+                {
+                    b.HasOne("UsersService.Core.Entities.Country", "Country")
+                        .WithMany("State")
+                        .HasForeignKey("CountryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Country");
                 });
@@ -362,7 +482,7 @@ namespace UsersService.Infrastructure.Migrations
 
             modelBuilder.Entity("UsersService.Core.Entities.Users", b =>
                 {
-                    b.HasOne("UsersService.Core.Entities.Countries", "Country")
+                    b.HasOne("UsersService.Core.Entities.Country", "Country")
                         .WithMany()
                         .HasForeignKey("CountryID")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -372,7 +492,7 @@ namespace UsersService.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("CustomerID");
 
-                    b.HasOne("UsersService.Core.Entities.States", "State")
+                    b.HasOne("UsersService.Core.Entities.State", "State")
                         .WithMany()
                         .HasForeignKey("StateID")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -383,6 +503,16 @@ namespace UsersService.Infrastructure.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("State");
+                });
+
+            modelBuilder.Entity("UsersService.Core.Entities.Country", b =>
+                {
+                    b.Navigation("State");
+                });
+
+            modelBuilder.Entity("UsersService.Core.Entities.State", b =>
+                {
+                    b.Navigation("City");
                 });
 #pragma warning restore 612, 618
         }

@@ -29,6 +29,9 @@ namespace UsersService.Application.Handlers.Users.CommandHandlers.Customer
                 throw new ApplicationException("Issue with mapper");
             }
             custEntitiy.isActive = true;//set newly created customer as a active
+            custEntitiy.createdOn = DateTime.Now;
+            custEntitiy.modifiedOn = DateTime.Now;
+            custEntitiy.modifiedBy = "";
             var addcustResponse = await _custRepo.AddAsync(custEntitiy);
             var mapcustResponse = UsersMapper.Mapper.Map<CustomerResponse>(addcustResponse);
             return mapcustResponse;

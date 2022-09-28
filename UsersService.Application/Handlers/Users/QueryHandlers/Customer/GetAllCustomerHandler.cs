@@ -5,11 +5,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UsersService.Application.Queries;
+using UsersService.Core.Entities;
 using UsersService.Core.Repositories;
+using UsersService.Core.Response;
 
 namespace UsersService.Application.Handlers.Users.QueryHandlers.Customer
 {
-    public class GetAllCustomerHandler : IRequestHandler<GetAllCustomerQuery, List<UsersService.Core.Entities.Customers>>
+    public class GetAllCustomerHandler : IRequestHandler<GetAllCustomerQuery, AllCustomersResponse>
     {
         private readonly ICustomerRepository _CustomerRepo;
 
@@ -17,9 +19,10 @@ namespace UsersService.Application.Handlers.Users.QueryHandlers.Customer
         {
             _CustomerRepo = CustomerRepository;
         }
-        public async Task<List<UsersService.Core.Entities.Customers>> Handle(GetAllCustomerQuery request, CancellationToken cancellationToken)
+        public async Task<AllCustomersResponse> Handle(GetAllCustomerQuery request, CancellationToken cancellationToken)
         {
-            return (List<UsersService.Core.Entities.Customers>)await _CustomerRepo.GetAllCustomers();
+            var result= (AllCustomersResponse)await _CustomerRepo.GetAllCustomers(request.GetAllCustomerRequest);
+            return result;
         }
     }
 }

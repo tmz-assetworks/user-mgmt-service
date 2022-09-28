@@ -12,8 +12,9 @@ namespace UsersService.Application.Commands.Customer
     {
         public long id { get; set; }
         public string userName { get; set; }
-
-        public DateTime DOB { get; set; }
+        public string pointofcontact { get; set; }
+        public string email { get; set; }
+        public string notes { get; set; }
 
         public long PhoneNumber { get; set; }
 
@@ -27,19 +28,10 @@ namespace UsersService.Application.Commands.Customer
         public long StateID { get; set; }
 
 
-        public string City { get; set; }
+        public long CityID { get; set; }
 
         public string ZipCode { get; set; }
 
-        public string CreatedBy { get; set; }
-
-
-        public DateTime CreatedOn { get; set; }
-
-
         public string ModifiedBy { get; set; }
-
-
-        public DateTime ModifiedOn { get; set; }
     }
 }

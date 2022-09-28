@@ -6,14 +6,20 @@ namespace UsersService.Application.Commands.Users
 {
     public class CreateUserCommand : IRequest<UserResponse>
     {
-
+        public string DisplayName { get; set; }
+        public string? objectid { get; set; }
+        public string userPrincipalName { get; set; }
+        public string MailNickname { get; set; }
+        public bool isActive { get; set; }
+        //public string Password { get; set; }
+        //public bool isForceChangePasswordNextSignIn { get; set; }
         public string EmailId { get; set; }
+        public string name { get; set; }
+        //public int userRole { get; set; }
 
         public DateTime DOB { get; set; }
-        public string UserPrincipalName { get; set; }
-
-        public string ObjectId { get; set; }
         public long PhoneNumber { get; set; }
+        public long CustomerID { get; set; }
 
         public string AddressLine1 { get; set; }
 
@@ -21,23 +27,26 @@ namespace UsersService.Application.Commands.Users
 
         public long CountryID { get; set; }
 
-
         public long StateID { get; set; }
 
 
-        public string City { get; set; }
+        public long CityID { get; set; }
 
         public string ZipCode { get; set; }
 
         public string CreatedBy { get; set; }
 
-
-        public DateTime CreatedOn { get; set; }
-
-
-        public string ModifiedBy { get; set; }
-
-
-        public DateTime ModifiedOn { get; set; }
+        public List<UserRole> UserRolesCommand { get; set; }
+        public List<OperatorUserMapper>? operatorUserMapperCommand { get; set; }
     }
+
+    public class UserRole
+    { 
+        public long Roleid { get; set; }
+    }
+    public class OperatorUserMapper
+    {
+        public long locationId { get; set; }
+    }
+
 }

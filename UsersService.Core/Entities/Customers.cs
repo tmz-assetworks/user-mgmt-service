@@ -15,40 +15,53 @@ namespace UsersService.Core.Entities
 
         [Required]
         [DataMember(Name = "userName", EmitDefaultValue = false)]
-        [Column(TypeName = "nvarchar(200)")]
+        [Column(TypeName = "nvarchar(100)")]
         public string userName { get; set; }
 
-        [DataMember(Name = "DOB", EmitDefaultValue = false)]
-        public DateTime DOB { get; set; }
-
+        [Required]
         [DataMember(Name = "phoneNumber", EmitDefaultValue = false)]
-        public long phoneNumber { get; set; }
+        [Column(TypeName = "nvarchar(15)")]
+        public string phoneNumber { get; set; }
 
-
+        [Required]
         [DataMember(Name = "AddressLine1", EmitDefaultValue = false)]
-        [Column(TypeName = "nvarchar(200)")]
+        [Column(TypeName = "nvarchar(255)")]
         public string AddressLine1 { get; set; }
 
         [DataMember(Name = "AddressLine2", EmitDefaultValue = false)]
-        [Column(TypeName = "nvarchar(200)")]
+        [Column(TypeName = "nvarchar(255)")]
         public string AddressLine2 { get; set; }
 
         [ForeignKey("CountryID")]
-        public virtual Countries Country { get; set; }
+        public virtual Country Country { get; set; }
         public long? CountryID { get; set; }
 
         [ForeignKey("StateID")]
        
-        public virtual States State { get; set; }
+        public virtual State State { get; set; }
         public long? StateID { get; set; }
+        public long? CityID { get; set; }
 
-        [DataMember(Name = "city", EmitDefaultValue = false)]
+        //[DataMember(Name = "city", EmitDefaultValue = false)]
+        //[Column(TypeName = "nvarchar(100)")]
+        //public string city { get; set; }
+
+        [DataMember(Name = "pointofcontact", EmitDefaultValue = false)]
         [Column(TypeName = "nvarchar(100)")]
-        public string city { get; set; }
+        public string pointofcontact { get; set; }
 
+        [DataMember(Name = "description", EmitDefaultValue = false)]
+        [Column(TypeName = "nvarchar(255)")]
+        public string description { get; set; }
 
+        [Required]
+        [DataMember(Name = "email", EmitDefaultValue = false)]
+        [Column(TypeName = "nvarchar(200)")]
+        public string email { get; set; }
+
+        [Required]
         [DataMember(Name = "zipCode", EmitDefaultValue = false)]
-        [Column(TypeName = "nvarchar(100)")]
+        [Column(TypeName = "nvarchar(6)")]
         public string zipCode { get; set; }
 
         [DataMember(Name = "createdBy", EmitDefaultValue = false)]

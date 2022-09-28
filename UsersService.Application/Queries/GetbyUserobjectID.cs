@@ -4,17 +4,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using UsersService.Core.Entities;
 using UsersService.Core.Response;
 
 namespace UsersService.Application.Queries
 {
-    public class GetByIdCustomersQuery : IRequest<AllCustomerResp>
+
+    public class GetbyUserobjectID : IRequest<GetUserobjectbyidDT>
     {
-        public long Id { get; set; }
-        public GetByIdCustomersQuery(long id)
+        public string ObjectId { get; set; }
+        public GetbyUserobjectID(string objectid)
         {
-            Id = id;
+            ObjectId = objectid;
         }
     }
 }

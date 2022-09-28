@@ -28,7 +28,9 @@ namespace UsersService.Application.Handlers.Users.CommandHandlers.Customer
             {
                 throw new ApplicationException("Issue with mapper");
             }
-
+            CustEntitiy.createdOn = DateTime.Now;
+            CustEntitiy.modifiedOn = DateTime.Now;
+            CustEntitiy.createdBy = CustEntitiy.modifiedBy;
             var updateCust = _CustRepo.UpdateAsync(CustEntitiy, CustEntitiy.Id);
             var mapUserResponse = UsersMapper.Mapper.Map<CustomerResponse>(updateCust.Result);
             return mapUserResponse;
