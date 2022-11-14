@@ -1,4 +1,4 @@
-﻿using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
@@ -36,11 +36,6 @@ namespace UsersService.Api
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
-          //  var configuration1 = new ConfigurationBuilder()
-          //.AddJsonFile("appsettings.json")
-          //.AddJsonFile($"appsettings.{environment.ToString()}.json")
-          //.AddEnvironmentVariables()
-          //.Build();
         }
 
         public IConfiguration Configuration { get; }
@@ -48,42 +43,27 @@ namespace UsersService.Api
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            //this.ConfigureOAuth(services);
-            // services.AddMicrosoftWebApiAuthentication(Configuration);
-            //services.AddAuthentication(AzureADDefaults.JwtBearerAuthenticationScheme)
-            //.AddAzureADBearer(options => Configuration.Bind("AzureAdN", options));
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
+             Dictionary<string, string> myConfiguration = new Dictionary<string, string>
                 {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = Configuration["Jwt:Issuer"],
-                    ValidAudience = Configuration["Jwt:Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["Jwt:Key"]))
+                    {"AzureAd:Instance",Environment.GetEnvironmentVariable("AZUREAD_INSTANCE")},
+                    {"AzureAd:Domain",Environment.GetEnvironmentVariable("AZUREAD_DOMAIN")},
+                    {"AzureAd:clientId", Environment.GetEnvironmentVariable("AZUREAD_CID")},
+                    {"AzureAd:TenantId", Environment.GetEnvironmentVariable("AZUREAD_TID")},
+                    {"AzureAd:audience",Environment.GetEnvironmentVariable("AZUREAD_AUD")},
                 };
-            });
-
+            IConfiguration configurationENV = new ConfigurationBuilder().AddInMemoryCollection(myConfiguration).Build();
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+             .AddMicrosoftIdentityWebApi(configurationENV.GetSection("AzureAd"));
+            //.AddMicrosoftIdentityWebApi(Configuration.GetSection("AzureAd1"));
             var dbHost = Environment.GetEnvironmentVariable("DB_HOST");
             var dbName = Environment.GetEnvironmentVariable("DB_NAME");
             var dbPassword = Environment.GetEnvironmentVariable("DB_SA_PASSWORD");
-            var connectionString = $"Data Source={dbHost};Initial Catalog={dbName};User ID=sa;Password={dbPassword}";
+            var dbUserName = Environment.GetEnvironmentVariable("DB_LOGIN_USERNAME");
+            var connectionString = $"Data Source={dbHost};Initial Catalog={dbName};User ID={dbUserName};Password={dbPassword}";
             services.AddDbContext<UsersService.Infrastructure.DBContext.DBContextCore>(
 
             //m => m.UseSqlServer(Configuration.GetConnectionString("UserDB")), ServiceLifetime.Transient);
             m => m.UseSqlServer(connectionString), ServiceLifetime.Transient);
-
-            //var dbHost = Environment.GetEnvironmentVariable("DB_HOST");
-            //var OcppdbName = Environment.GetEnvironmentVariable("OCPP_DB_NAME");
-            //var dbName = Environment.GetEnvironmentVariable("Asset_DB_NAME");
-            //var dbPassword = Environment.GetEnvironmentVariable("DB_SA_PASSWORD");
-            //var connectionString = Configuration.GetConnectionString("UserDB");
-            //services.AddDbContext<DBContextCore>(
-            //  o => o.UseSqlServer(connectionString), ServiceLifetime.Transient);
-
             services.AddAutoMapper(typeof(Startup));
             services.AddTransient<ICustomerRepository, CustomerRepository>();
             services.AddMediatR(typeof(GetByIdCustomersHandler).GetTypeInfo().Assembly);
@@ -156,6 +136,8 @@ namespace UsersService.Api
             //db.Database.EnsureCreated();
             //  app.UseHttpsRedirection();
 
+            app.UseHttpsRedirection();
+            app.UseStaticFiles();
             app.UseRouting();
             //  app.UseAuthentication();
             app.UseAuthentication();

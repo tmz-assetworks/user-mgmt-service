@@ -11,10 +11,10 @@ namespace UsersService.Application.Queries
 {
     public class GetByIdCustomersQuery : IRequest<AllCustomerResp>
     {
-        public long Id { get; set; }
-        public GetByIdCustomersQuery(long id)
+        public string Id { get; set; }
+        public GetByIdCustomersQuery(string id)
         {
-            Id = id;
+            Id = id; 
         }
     }
 }

@@ -15,10 +15,7 @@ namespace UsersService.Application.Commands.Users
         //public bool isForceChangePasswordNextSignIn { get; set; }
         public string EmailId { get; set; }
         public string name { get; set; }
-        //public int userRole { get; set; }
-
-        public DateTime DOB { get; set; }
-        public long PhoneNumber { get; set; }
+        public string PhoneNumber { get; set; }
         public long CustomerID { get; set; }
 
         public string AddressLine1 { get; set; }
@@ -30,14 +27,14 @@ namespace UsersService.Application.Commands.Users
         public long StateID { get; set; }
 
 
-        public long CityID { get; set; }
+        //public long CityID { get; set; }
+        public string CityName { get; set; }
 
         public string ZipCode { get; set; }
 
         public string CreatedBy { get; set; }
-
         public List<UserRole> UserRolesCommand { get; set; }
-        public List<OperatorUserMapper>? operatorUserMapperCommand { get; set; }
+        public List<long>? operatorUserMapperCommand { get; set; }
     }
 
     public class UserRole

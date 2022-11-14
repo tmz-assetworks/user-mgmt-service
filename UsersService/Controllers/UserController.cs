@@ -25,7 +25,12 @@ using UsersService.Infrastructure.EnumData;
 using UsersService.Infrastructure.Helpers;
 using UsersService.Responses.Users;
 using static System.Net.WebRequestMethods;
-
+using UsersService.Api.Mail;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.AspNetCore.Hosting;
+using System.IO;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
+using Serilog;
 
 namespace UsersService.Api.Controllers
 {
@@ -39,12 +44,36 @@ namespace UsersService.Api.Controllers
         private readonly ILogger<UserController> _logger;
         TokenBase _tokenBase;
         string JSONString = String.Empty;
-        public UserController(IConfiguration configuration,IMediator mediator, ILogger<UserController> logger, TokenBase tokenBase)
+        private readonly IWebHostEnvironment webHostEnvironment;
+
+        public UserController(IConfiguration configuration, IMediator mediator, ILogger<UserController> logger, TokenBase tokenBase, IWebHostEnvironment hostEnvironment)
         {
             _mediator = mediator;
             _logger = logger;
             _baseconfiguration = configuration;
             _tokenBase = tokenBase;
+            webHostEnvironment = hostEnvironment;
+            Dictionary<string, string> myConfiguration = new Dictionary<string, string>
+                {
+                    {"AzureAd:clientId", Environment.GetEnvironmentVariable("AZUREAD_CID")},
+                    {"AzureAd:TenantId", Environment.GetEnvironmentVariable("AZUREAD_TID")},
+                    {"AzureAd:clientSecret",Environment.GetEnvironmentVariable("AZUREAD_CLIENT_SECRET")},
+                    {"AzureAd:Instance",Environment.GetEnvironmentVariable("AZUREAD_INSTANCE")},
+                    {"EncryptDecryptkey",Environment.GetEnvironmentVariable("DECRYPTKEY")},
+                    {"Jwt:Key",Environment.GetEnvironmentVariable("JWT_KEY")},
+                    {"Jwt:Issuer", Environment.GetEnvironmentVariable("JWT_ISSUER")},
+                    {"Jwt:Audience", Environment.GetEnvironmentVariable("JWT_AUD")},
+                    {"flag:Emailflag", Environment.GetEnvironmentVariable("flag_Emailflag")},
+                    {"MailSettings:UserName", Environment.GetEnvironmentVariable("Mail_UserName")},
+                    {"MailSettings:Password", Environment.GetEnvironmentVariable("Mail_Password")},
+                    {"MailSettings:Host", Environment.GetEnvironmentVariable("Mail_Host")},
+                    {"MailSettings:Port", Environment.GetEnvironmentVariable("Mail_Port")},
+                    {"AzureAd:resourceId", Environment.GetEnvironmentVariable("AZUREAD_RESOURCEID")},
+                    {"AzureAd:operatorRoleId", Environment.GetEnvironmentVariable("AZUREAD_OPERATORRID")},
+                    {"AzureAd:adminRoleId", Environment.GetEnvironmentVariable("AZUREAD_ADMINRID")},
+                    {"BaseUrl:fronendurl", Environment.GetEnvironmentVariable("BaseUrl_fronted")},
+                };
+            _baseconfiguration = new ConfigurationBuilder().AddInMemoryCollection(myConfiguration).Build();
         }
         [ApiExplorerSettings(IgnoreApi = true)]
         [NonAction]
@@ -148,16 +177,17 @@ namespace UsersService.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<GetUserResponseDT> GetUserById(int id)
         {
-            GetUserResponseDT getUserResponse =new GetUserResponseDT();  
+            GetUserResponseDT getUserResponse = new GetUserResponseDT();
             try
             {
+                _tokenBase.acces_token = await HttpContext.GetTokenAsync("access_token");
                 GetUserResponseDT res = await _mediator.Send(new GetByIdUserQuery(id));
                 return res;
             }
             catch (Exception ex)
             {
                 JSONString = "{\n  \"data\" : " + null + ",  \"StatusMessage\" : " + ex.Message.ToString() + ",\n  \"StatusCode\" : " + (int)HttpStatusCode.NotFound + " \n}";
-                _logger.LogError(ex.ToString());
+                //_logger.LogError(ex.ToString());
 
             }
             return getUserResponse;
@@ -166,16 +196,17 @@ namespace UsersService.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<UserResponse>> CreateUser([FromBody] CreateUserCommand command)
         {
+            UserResponse userResponse = new UserResponse();
             
-            UserResponse userResponse =new  UserResponse();
             string userprincipal = "";
+            _tokenBase.acces_token = await HttpContext.GetTokenAsync("access_token");
             if (!string.IsNullOrEmpty(command.name))
             {
                 if (command.name.Contains(' '))
                     userprincipal = command.name.ToString().Split(' ')[0].Trim() + "@devopstekmindz.onmicrosoft.com";
                 else userprincipal = command.name + "@devopstekmindz.onmicrosoft.com";
             }
-            
+
 
             UserResponse resp = new UserResponse();
             string responce = string.Empty;
@@ -200,10 +231,10 @@ namespace UsersService.Api.Controllers
                     accountEnabled = command.isActive,
                     userPrincipalName = userprincipal,
                     mailNickname = nikname,
-                    mail=command.EmailId,
+                    mail = command.EmailId,
                     passwordProfile = new PasswordProfile()
                     {
-                        Password = "User@"+DateTime.Now.Ticks.ToString(),
+                        Password = "User@" + DateTime.Now.Ticks.ToString(),
                         ForceChangePasswordNextSignIn = true
                     }
                 };
@@ -223,30 +254,57 @@ namespace UsersService.Api.Controllers
                     responce = @"{""StatusCode"":""200"",""Message"":""User Created Successfuly"",""data"":" + responce + "}";
                     dynamic data = JObject.Parse(responce);
                     string responseobjectid = Convert.ToString(data["data"]["id"]);
-                    if (string.IsNullOrEmpty(command.PhoneNumber.ToString()) || string.IsNullOrEmpty(command.EmailId) || string.IsNullOrEmpty(command.DOB.ToString()))
+                    if (string.IsNullOrEmpty(command.PhoneNumber.ToString()) || string.IsNullOrEmpty(command.EmailId))
                     {
                         responce = @"{""StatusCode"":""400"",""Message"":""" + "Invalid User Details" + @"""}";
                         return BadRequest(responce);
 
                     }
-                    command.objectid = responseobjectid;
-                    command.userPrincipalName = userprincipal;
-                    var resultRes = await _mediator.Send(command);
-                    if (result != null)
-                    {
-                        resp.StatusCode = (int)HttpStatusCode.OK;
-                        resp.StatusMessage = "Record updated successfully";
-                        resp.Id = resultRes.Id;
 
-                        SendEmail(nikname,userprincipal, command.EmailId);
+                    AssignRoleModel assignRole1 = new AssignRoleModel();
+                    assignRole1.resourceId = _baseconfiguration["AzureAd:resourceId"];//
+                    assignRole1.principalId = responseobjectid;
+                    assignRole1.appRoleId = _baseconfiguration["AzureAd:operatorRoleId"];
+                    if (_tokenBase.getrole().ToLower() == "admin")
+                        assignRole1.appRoleId = _baseconfiguration["AzureAd:adminRoleId"];
+                   
+                    StringContent stringRoleContent = new StringContent(JsonSerializer.Serialize<AssignRoleModel>(assignRole1), Encoding.UTF8, "application/json");
+
+                    HttpResponseMessage httpResponseMessage = await httpClient.PostAsync("https://graph.microsoft.com/v1.0/users/"+ responseobjectid + "/appRoleAssignments", stringRoleContent);
+                   
+                    if (httpResponseMessage.IsSuccessStatusCode)
+                    {
+
+                        Console.WriteLine("Record Insertion :" + httpResponseMessage);
+                        command.objectid = responseobjectid;
+                        command.userPrincipalName = userprincipal;
+                        var resultRes = await _mediator.Send(command);
+                        Console.WriteLine("Record Saved :" + httpResponseMessage);
+
+                        if (resultRes != null)
+                        {
+                            resp.StatusCode = (int)HttpStatusCode.OK;
+                            resp.StatusMessage = "Record saved successfully";
+                            resp.Id = resultRes.Id;
+                            UsersService.Api.Mail.MailService mailService = new UsersService.Api.Mail.MailService(_baseconfiguration);
+                            Console.WriteLine("Send Mail :" + (nikname, userprincipal, command.EmailId, long.Parse(resultRes.OTP)));
+                            mailService.SendEmail(nikname, userprincipal, command.EmailId, long.Parse(resultRes.OTP));
+                        }
+                        else
+                        {
+                            resp.StatusCode = (int)HttpStatusCode.OK;
+                            resp.StatusMessage = "Record not updated";
+                            resp.Id = resultRes.Id;
+                        }
+                        return Ok(resp);
+
                     }
                     else
                     {
-                        resp.StatusCode = (int)HttpStatusCode.OK;
-                        resp.StatusMessage = "Record not updated";
-                        resp.Id = resultRes.Id;
+                        var roleResult = await httpResponseMessage.Content.ReadAsStringAsync();
+                        return BadRequest(roleResult);
                     }
-                    return Ok(resp);
+                        
                 }
                 else
                 {
@@ -259,7 +317,7 @@ namespace UsersService.Api.Controllers
                     string errormessage = Convert.ToString(data1["data"]["error"]["message"]);
                     resp.StatusCode = (int)result.StatusCode;
                     resp.StatusMessage = errormessage;
-                   
+
                     return Ok(resp);
                 }
             }
@@ -271,32 +329,53 @@ namespace UsersService.Api.Controllers
             }
         }
 
-        [AllowAnonymous]
-        private void SendEmail(string nikname, string userprincipal, string emailId)
-        {
+        //[AllowAnonymous]
+        //private void SendEmail(string nikname, string userprincipal, string emailId, long rOTP)
+        //{
+        //    MailRequest request = new MailRequest();
+        //    if (_baseconfiguration["flag:Emailflag"] == "0")
+        //    {
+        //        request.ToEmail = "ashu.setiya@assetworks.com";
+        //       // request.ToEmail = "tripathi7800@gmail.com";
+        //        request.frommail = "mamta.mishra@assetworks.com";
+        //    }
+        //    else
+        //    {
+        //        request.ToEmail = emailId;
+        //        request.frommail = "mamta.mishra@assetworks.com";
+        //    }
 
-            MailRequest request = new MailRequest();
-            request.ToEmail = "ashu.setiya@assetworks.com";
-            request.frommail = "mamta.mishra@assetworks.com";
+        //    request.Subject = "Registration OTP";
 
-            ///request.ToEmail = "atul.kumar@tekhmindz.com";
-            //request.frommail = "anurag.tripathi @tekmindz.com"; 
+        //    request.Body = "Dear" + nikname + ", <br><br> Your OTP Is:" + " " + rOTP + "For verify otp please <a href=\"https://qa-portal-ui.azurewebsites.net/verifyOTP?emailid=" + userprincipal + "\">Click Hear</a> <br><br> Regards <br> Assetwork Teams";
 
-            request.Subject = "Registration OTP";
-         
-            request.Body = "Dear" + nikname + ", <br><br> Your OTP Is:" + " " + "123456" + "For verify otp please <a href=\"https://qa-portal-ui.azurewebsites.net/verifyOTP?emailid=" + userprincipal + "\">Click Hear</a> <br><br> Regards <br> Assetwork Teams";
-            
-            UsersService.Api.Mail.MailService mailService = new UsersService.Api.Mail.MailService(_baseconfiguration);
-             mailService.SendEmailAsync(request);
+        //    UsersService.Api.Mail.MailService mailService = new UsersService.Api.Mail.MailService(_baseconfiguration);
+        //    mailService.SendEmailAsync(request);
 
 
-        }
+        //}
 
         [HttpPost]
         [Route("ResetPassword")]
         [AllowAnonymous]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPassword resetPassword)
         {
+            var otptoken = resetPassword.accesstoken;
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_baseconfiguration["Jwt:Key"]));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var handler = new JwtSecurityTokenHandler();
+            var jwtSecurityToken = handler.ReadJwtToken(otptoken);
+            var objemail = jwtSecurityToken.Claims.First(claim => claim.Type == "email").Value;
+            var objiss = jwtSecurityToken.Claims.First(claim => claim.Type == "iss").Value;
+            var objexp = jwtSecurityToken.Claims.First(claim => claim.Type == "exp").Value;
+            var objaud = jwtSecurityToken.Claims.First(claim => claim.Type == "aud").Value;
+
+            long timestamp = Convert.ToInt64(objexp);
+            DateTime compareTo = DateTime.UtcNow;
+            DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds(timestamp);
+            AuthController authController = new AuthController(_baseconfiguration,_mediator);
+            var userprincipal = await authController.Username(resetPassword.emailid);
             string str = "";
             if (string.IsNullOrEmpty(resetPassword.emailid) || string.IsNullOrEmpty(resetPassword.password))
             {
@@ -314,7 +393,7 @@ namespace UsersService.Api.Controllers
                 HttpClient httpClient = new HttpClient();
                 StringContent stringContent = new StringContent(JsonSerializer.Serialize<UserNModel>(userN), Encoding.UTF8, "application/json");
                 httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAdminAccessToken()));
-                HttpResponseMessage httpResponseMessage = await httpClient.PatchAsync(string.Concat("https://graph.microsoft.com/v1.0/users/", resetPassword.emailid), stringContent);
+                HttpResponseMessage httpResponseMessage = await httpClient.PatchAsync(string.Concat("https://graph.microsoft.com/v1.0/users/", userprincipal.useremail), stringContent);
 
                 str = await httpResponseMessage.Content.ReadAsStringAsync();
                 if (httpResponseMessage.IsSuccessStatusCode)
@@ -337,7 +416,7 @@ namespace UsersService.Api.Controllers
             }
 
         }
-  
+
         [HttpPut("UpdateUser")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<UserResponse>> UpdateUser([FromBody] UpdateUserCommand command)
@@ -538,5 +617,117 @@ namespace UsersService.Api.Controllers
 
             return str2;
         }
+
+        [HttpPut("UpdateUserProfilePicture")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<UserProfileResponse> UpdateUserProfilePicture([FromForm] UpdatedUserProfileImage model)
+        {
+            UpdateUserProfileImage updateUserProfileImage=new UpdateUserProfileImage();
+            UserProfileResponse resp = new UserProfileResponse();
+            var uploadsFolder= "";
+            _tokenBase.acces_token = await HttpContext.GetTokenAsync("access_token");
+            var objID = _tokenBase.getobjectid();
+            try
+            {
+                if (model.ProfilePicture != null)
+                {
+                    if (string.IsNullOrWhiteSpace(webHostEnvironment.WebRootPath))
+                    {
+                        webHostEnvironment.WebRootPath = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot");
+                    }
+                    uploadsFolder = Path.Combine(webHostEnvironment.WebRootPath, "images\\");
+                    if (!System.IO.Directory.Exists(uploadsFolder))
+                    {
+                        System.IO.Directory.CreateDirectory(uploadsFolder);
+                    }
+                    using (FileStream fileStream = System.IO.File.Create(uploadsFolder + objID + ".png"))
+                    {
+                        model.ProfilePicture.CopyTo(fileStream);
+                        fileStream.Flush();
+                    }
+                    uploadsFolder = ("~/images/" + objID + ".png");
+                }
+                updateUserProfileImage.ImagePath = uploadsFolder;
+                var result = await _mediator.Send((updateUserProfileImage));
+                if (result != null)
+                {
+                    resp.StatusCode = (int)HttpStatusCode.OK;
+                    resp.StatusMessage = "Image updated successfully";
+                }
+                else
+                {
+                    resp.StatusCode = (int)HttpStatusCode.OK;
+                    resp.StatusMessage = "Record not updated";
+                }
+            }
+            catch (Exception ex)
+            {
+                resp.StatusCode = 404;
+                resp.StatusMessage = "Image not Update ";
+            }
+            return (resp);
+        }
+
+        [HttpPut("UpdateUserProfile")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<UserProfileResponse>> UpdateUserProfile([FromBody] UpdateUserProfileCommand command)
+        {
+            UserProfileResponse resp = new UserProfileResponse();
+            try
+            {
+                if (command.Id != 0)
+                {
+
+                    var result = await _mediator.Send(command);
+                    if (result != null)
+                    {
+                        resp.StatusCode = (int)HttpStatusCode.OK;
+                        resp.StatusMessage = "Record updated successfully";
+                    }
+                    else
+                    {
+                        resp.StatusCode = (int)HttpStatusCode.OK;
+                        resp.StatusMessage = "Record not updated";
+                    }
+                }
+                else
+                {
+                    resp.StatusCode = (int)HttpStatusCode.OK;
+                    resp.StatusMessage = "Please enter valid UserID";
+                }
+                return Ok(resp);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+                return new ContentResult()
+                {
+                    ContentType = "Exception",
+                    StatusCode = 404,
+                    Content = "User not Update "
+                };
+            }
+        }
+
+        [HttpGet("GetUserProfileById")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<GetUserProfileResponseDT> GetUserProfileById()
+        {
+            _tokenBase.acces_token = await HttpContext.GetTokenAsync("access_token");
+            GetUserProfileResponseDT getUserResponse = new GetUserProfileResponseDT();
+            try
+            {
+                GetUserProfileResponseDT res = await _mediator.Send(new GetByUserProfileIdQuery());
+                return res;
+            }
+            catch (Exception ex)
+            {
+                JSONString = "{\n  \"data\" : " + null + ",  \"StatusMessage\" : " + ex.Message.ToString() + ",\n  \"StatusCode\" : " + (int)HttpStatusCode.NotFound + " \n}";
+                _logger.LogError(ex.ToString());
+
+            }
+            return getUserResponse;
+        }
+
     }
 }

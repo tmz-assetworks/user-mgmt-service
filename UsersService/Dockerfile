@@ -6,3 +6,4 @@ FROM base AS final
 WORKDIR /app
 COPY /publish /app
 ENTRYPOINT ["dotnet", "UsersService.Api.dll"]
+

@@ -21,5 +21,12 @@ namespace UsersService.Infrastructure.Helpers
             else
                 return value.ToString();
         }
+
+        public static int Getrandomnumber()
+        {
+            Random generator = new Random();
+            int rotp = generator.Next(100000, 999999);
+            return rotp;  
+        }
     }
 }

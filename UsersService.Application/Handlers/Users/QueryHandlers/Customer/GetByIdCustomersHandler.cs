@@ -13,7 +13,7 @@ namespace UsersService.Application.Handlers.Users.QueryHandlers.Customer
 {
     public class GetByIdCustomersHandler : IRequestHandler<GetByIdCustomersQuery, AllCustomerResp>
     {
-        private readonly ICustomerRepository _CustomersRepo;
+        private readonly ICustomerRepository _CustomersRepo; 
         public GetByIdCustomersHandler(ICustomerRepository CustomersRepository)
         {
             _CustomersRepo = CustomersRepository;

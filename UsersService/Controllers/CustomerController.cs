@@ -7,6 +7,7 @@ using System.Text.Json;
 using UsersService.Application.Commands.Customer;
 using UsersService.Application.Queries;
 using UsersService.Application.Responses.Customer;
+using UsersService.Core.ConstantResponse;
 using UsersService.Core.Entities;
 using UsersService.Core.Response;
 using UsersService.Infrastructure.EnumData;
@@ -16,7 +17,7 @@ namespace UsersService.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+   [Authorize]
     public class CustomerController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -69,7 +70,7 @@ namespace UsersService.Api.Controllers
                         };
                     allCustomerResp.statusData = statusData;
                     allCustomerResp.StatusCode = (int)HttpStatusCode.OK;
-                    allCustomerResp.StatusMessage = "Record Found";
+                    allCustomerResp.StatusMessage = RespnoseMessage.Record_found;
                     allCustomerResp.Active = res.Active;
                     allCustomerResp.InActive = res.InActive;
                     allCustomerResp.paginationResponse = new Core.PagingHelper.PaginationResponse
@@ -85,14 +86,14 @@ namespace UsersService.Api.Controllers
                 else
                 {
                     allCustomerResp.StatusCode = (int)HttpStatusCode.OK;
-                    allCustomerResp.StatusMessage = "Record not Found";
+                    allCustomerResp.StatusMessage = RespnoseMessage.Record_not_found;
                     allCustomerResp.data = null;
                 }
             }
             catch (Exception ex)
             {
                 allCustomerResp.StatusCode = (int)HttpStatusCode.BadRequest;
-                allCustomerResp.StatusMessage = "Bad Request";
+                allCustomerResp.StatusMessage = RespnoseMessage.Bad_Request;
                 allCustomerResp.data = null;
                 _logger.LogError(ex.ToString());
 
@@ -102,23 +103,20 @@ namespace UsersService.Api.Controllers
         }
         [HttpGet("GetCustomerbyID")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<AllCustomerResp> GetById(int id)
+        public async Task<AllCustomerResp> GetById(int? id)
         {
             AllCustomerResp allCustomerResp = new AllCustomerResp();
             try
             {
-                if (id == 0)
+                if (id == null || id==0)
                 {
                     _tokenBase.acces_token = await HttpContext.GetTokenAsync("access_token");
-
-                    AllCustomerResp res = await _mediator.Send(new GetByIdCustomersQuery(long.Parse(_tokenBase.getcustomerId())));
-                    //return getjson(res);
+                    AllCustomerResp res = await _mediator.Send(new GetByIdCustomersQuery(""));
                     return res;
                 }
                 else
                 {
-                    AllCustomerResp res = await _mediator.Send(new GetByIdCustomersQuery(id));
-                    //return getjson(res);
+                    AllCustomerResp res = await _mediator.Send(new GetByIdCustomersQuery(Convert.ToString(id.Value)));
                     return res;
                 }
             }
@@ -155,26 +153,32 @@ namespace UsersService.Api.Controllers
                     if (!string.IsNullOrEmpty(command.userName))
                     {
                         var result = await _mediator.Send(command);
-                        if (resp != null)
+                        if (result != null)
                         {
                             resp.StatusCode = (int)HttpStatusCode.OK;
-                            resp.StatusMessage = "Record saved successfully";
+                            resp.StatusMessage = RespnoseMessage.Record_Save_Successfully;
                             resp.Id = result.Id;
                         }
                         else
                         {
                             resp.StatusCode = (int)HttpStatusCode.OK;
-                            resp.StatusMessage = "Record not saved";
-                            resp.Id = result.Id;
+                            resp.StatusMessage = RespnoseMessage.Record_Not_Saved;
+                            resp.Id = 0;
                         }
                     }
                     else
                     {
                         resp.StatusCode = 400;
-                        resp.StatusMessage = "Customer not Created ";
+                        resp.StatusMessage = RespnoseMessage.Customer_not_Created;
                         resp.Id = 0;
                     }
 
+                }
+                else
+                {
+                    resp.StatusCode = 400;
+                    resp.StatusMessage = RespnoseMessage.Customer_not_Created;
+                    resp.Id = 0;
                 }
                 return Ok(resp);
             }
@@ -183,9 +187,9 @@ namespace UsersService.Api.Controllers
                 _logger.LogError(ex.ToString());
                 return new ContentResult()
                 {
-                    ContentType = "Exception",
+                    ContentType = RespnoseMessage.Exception,
                     StatusCode = 404,
-                    Content = "Customer not Created "
+                    Content = RespnoseMessage.Customer_not_Created
                 };
             }
         }
@@ -201,13 +205,13 @@ namespace UsersService.Api.Controllers
                 if (result != null)
                 {
                     resp.StatusCode = (int)HttpStatusCode.OK;
-                    resp.StatusMessage = "Record updated successfully";
+                    resp.StatusMessage = RespnoseMessage.Record_Updated_Successfully;
                     resp.Id = result.Id;
                 }
                 else
                 {
                     resp.StatusCode = (int)HttpStatusCode.OK;
-                    resp.StatusMessage = "Record not updated";
+                    resp.StatusMessage = RespnoseMessage.Record_Not_Updated;
                     resp.Id = result.Id;
                 }
                 return Ok(resp);
@@ -217,9 +221,9 @@ namespace UsersService.Api.Controllers
                 _logger.LogError(ex.ToString());
                 return new ContentResult()
                 {
-                    ContentType = "Exception",
+                    ContentType = RespnoseMessage.Exception,
                     StatusCode = 404,
-                    Content = "Customer not Updated "
+                    Content = RespnoseMessage.Customer_not_Updated
                 };
             }
         }
@@ -234,13 +238,13 @@ namespace UsersService.Api.Controllers
                 if (result != null)
                 {
                     resp.StatusCode = (int)HttpStatusCode.OK;
-                    resp.StatusMessage = "Record updated successfully";
+                    resp.StatusMessage = RespnoseMessage.Record_Updated_Successfully;
                     resp.Id = result.Id;
                 }
                 else
                 {
                     resp.StatusCode = (int)HttpStatusCode.OK;
-                    resp.StatusMessage = "Record not updated";
+                    resp.StatusMessage = RespnoseMessage.Record_Not_Updated;
                     resp.Id = result.Id;
                 }
                 return Ok(resp);
@@ -250,9 +254,9 @@ namespace UsersService.Api.Controllers
                 _logger.LogError(ex.ToString());
                 return new ContentResult()
                 {
-                    ContentType = "Exception",
+                    ContentType = RespnoseMessage.Exception,
                     StatusCode = 404,
-                    Content = "Customer not Deleted "
+                    Content = RespnoseMessage.Customer_not_Deleted
                 };
             }
         }

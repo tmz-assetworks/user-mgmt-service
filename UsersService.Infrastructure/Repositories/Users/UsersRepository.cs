@@ -8,6 +8,7 @@ using UsersService.Core.Repositories.Users;
 using UsersService.Core.Response;
 using UsersService.Infrastructure.Helpers;
 using UsersService.Infrastructure.Repositories.Repository;
+using static System.Net.WebRequestMethods;
 
 namespace UsersService.Infrastructure.Repositories.Assets
 {
@@ -30,41 +31,75 @@ namespace UsersService.Infrastructure.Repositories.Assets
         public async Task<GetUserResponseDT> GetByIdUser(long userid)
         {
             GetUserResponseDT getUserResponseDT = new GetUserResponseDT();
-            var result = (from m in _dbContext.Users
-                          join country in _dbContext.Country
-                          on m.CountryID equals country.Id
-                          join state in _dbContext.State
-                          on m.StateID equals state.Id
-                          join City in _dbContext.City
-                          on m.CityID equals City.Id
-                          join c in _dbContext.Customers
-                          on m.CustomerID equals c.Id
-                          select new GetUserResponse
-                          {
-                              Id = m.Id,
-                              EmailId = m.EmailId,
-                              adminName=m.name,
-                              PhoneNumber = m.PhoneNumber,
-                              addressLine1 = m.AddressLine1,
-                              addressLine2 = m.AddressLine2,
-                              createdBy = m.CreatedBy,
-                              CreatedOn = m.CreatedOn,
-                              modifiedBy = m.ModifiedBy,
-                              modifiedOn = m.ModifiedOn,
-                              IsActive = m.IsActive,
-                              zipcode=m.ZipCode,
-                              dob=m.DOB,
-                              customerID=m.CustomerID,
-                              customername = m.name,
+            GetUserResponse result = new GetUserResponse();
+            if (_tokenbase.getrole().ToLower() == "operator")
+            {
+                 result = (from m in _dbContext.Users
+                              join country in _dbContext.Country
+                              on m.CountryID equals country.Id
+                              join state in _dbContext.State
+                              on m.StateID equals state.Id
+                              join c in _dbContext.Customers
+                              on m.CustomerID equals c.Id
+                              select new GetUserResponse
+                              {
+                                  Id = m.Id,
+                                  EmailId = m.EmailId,
+                                  adminName = m.name,
+                                  PhoneNumber = m.PhoneNumber,
+                                  addressLine1 = m.AddressLine1,
+                                  addressLine2 = m.AddressLine2,
+                                  createdBy = m.CreatedBy,
+                                  CreatedOn = m.CreatedOn,
+                                  modifiedBy = m.ModifiedBy,
+                                  modifiedOn = m.ModifiedOn,
+                                  IsActive = m.IsActive,
+                                  zipcode = m.ZipCode,
+                                  customerID = m.CustomerID,
+                                  customername = m.name,
+                                  CountryID = country.Id,
+                                  countryName = country.countryName,
+                                  StateID = state.Id,
+                                  cityName = m.CityName == null ? "" : m.CityName,
+                                  stateName = state.stateName,
+                                  locationsId = m.OperatorUserMapper.ToList().Select(r => r.LocationId).ToList<long>(),
+                              }).Where(x => x.Id == userid).FirstOrDefault();
+            }
+            else
+            {
+                 result = (from m in _dbContext.Users
+                              join country in _dbContext.Country
+                              on m.CountryID equals country.Id
+                              join state in _dbContext.State
+                              on m.StateID equals state.Id
 
-                              CountryID = country.Id,
-                              countryName = country.countryName,
-                              StateID = state.Id,
-                              CityID = City.Id,
-                              cityName = City.cityName,
-                              stateName = state.stateName,
-                          }).Where(x => x.Id == userid).FirstOrDefault();
+                              join c in _dbContext.Customers
+                              on m.CustomerID equals c.Id
+                              select new GetUserResponse
+                              {
+                                  Id = m.Id,
+                                  EmailId = m.EmailId,
+                                  adminName = m.name,
+                                  PhoneNumber = m.PhoneNumber,
+                                  addressLine1 = m.AddressLine1,
+                                  addressLine2 = m.AddressLine2,
+                                  createdBy = m.CreatedBy,
+                                  CreatedOn = m.CreatedOn,
+                                  modifiedBy = m.ModifiedBy,
+                                  modifiedOn = m.ModifiedOn,
+                                  IsActive = m.IsActive,
+                                  zipcode = m.ZipCode,
+                                  customerID = m.CustomerID,
+                                  customername = m.name,
 
+                                  CountryID = country.Id,
+                                  countryName = country.countryName,
+                                  StateID = state.Id,
+                                  locationsId = m.OperatorUserMapper.ToList().Select(r => r.LocationId).ToList<long>(),
+                                  cityName = m.CityName == null ? "" : m.CityName,
+                                  stateName = state.stateName,
+                              }).Where(x => x.Id == userid).FirstOrDefault();
+            }
             if (result != null)
             {
                 getUserResponseDT.StatusCode = (int)HttpStatusCode.OK;
@@ -90,8 +125,6 @@ namespace UsersService.Infrastructure.Repositories.Assets
                               on m.CountryID equals country.Id
                               join state in _dbContext.State
                               on m.StateID equals state.Id
-                              join City in _dbContext.City
-                              on m.CityID equals City.Id
                               join c in _dbContext.Customers
                               on m.CustomerID equals c.Id
                               join u in _dbContext.UserRoles
@@ -112,8 +145,7 @@ namespace UsersService.Infrastructure.Repositories.Assets
                                   CountryID = country.Id,
                                   countryName = country.countryName,
                                   StateID = state.Id,
-                                  CityID = City.Id,
-                                  cityName = City.cityName,
+                                  cityName = m.CityName == null ? "" : m.CityName,
                                   stateName = state.stateName,
                               })
                      .ToList();
@@ -125,8 +157,6 @@ namespace UsersService.Infrastructure.Repositories.Assets
                               on m.CountryID equals country.Id
                               join state in _dbContext.State
                               on m.StateID equals state.Id
-                              join City in _dbContext.City
-                              on m.CityID equals City.Id
                               join c in _dbContext.Customers
                               on m.CustomerID equals c.Id
                               join u in _dbContext.UserRoles
@@ -147,21 +177,21 @@ namespace UsersService.Infrastructure.Repositories.Assets
                                   CountryID = country.Id,
                                   countryName = country.countryName,
                                   StateID = state.Id,
-                                  CityID = City.Id,
-                                  cityName = City.cityName,
+                                  cityName = m.CityName == null ? "" : m.CityName,
                                   stateName = state.stateName,
+
                               })
                                      .ToList();
             }
             result = result != null ? result.OrderByDescending(x => x.modifiedOn).ToList() : result;
+            allUserResponse.InActive = result.Where(m => m.IsActive == false).Count();
+            allUserResponse.Active = result.Where(m => m.IsActive == true).Count();
             if (!string.IsNullOrEmpty(getUserRequest.SearchParam))
                 result = result.Where(d => d.adminName.ToLower().Contains(getUserRequest.SearchParam.ToLower())
              ).ToList<GetUserResponse>();
             allUserResponse.data = PagedList<GetUserResponse>.ToPagedList(result,
                getUserRequest.PageNumber,
                getUserRequest.PageSize);
-            allUserResponse.InActive = result.Where(m => m.IsActive == false).Count();
-            allUserResponse.Active = result.Where(m => m.IsActive == true).Count();
 
             return allUserResponse;
         }
@@ -215,15 +245,14 @@ namespace UsersService.Infrastructure.Repositories.Assets
                 ousers.PhoneNumber=users.PhoneNumber;
                 ousers.AddressLine1 = users.AddressLine1;
                 ousers.AddressLine2 = users.AddressLine2;
-                ousers.CityID=users.CityID;
+                ousers.CityName=users.CityName;
                 ousers.StateID=users.StateID;
                 ousers.CountryID=users.CountryID;
-                ousers.DOB=users.DOB;
                 ousers.CustomerID=users.CustomerID;
                 ousers.ZipCode=users.ZipCode;
                 ousers.ModifiedBy=users.ModifiedBy;
                 ousers.ModifiedOn = DateTime.Now;
-                for (int i = 0; i < users.OperatorUserMapper.Count(); i++)
+                for (int i = 0; i < users.UserRoles.Count(); i++)
                 {
                     UserRoles oldUserrole = _dbContext.UserRoles.Find(users.UserRoles.ToList()[i].id);
                     if (oldUserrole != null)
@@ -235,19 +264,35 @@ namespace UsersService.Infrastructure.Repositories.Assets
                         oldUserrole.RoleID = newuser.RoleID;
                     }
                 }
+
+
+             
+                List<OperatorUserMapper> collec =  _dbContext.OperatorUserMapper.Where(m => m.UserId == users.Id).ToList<OperatorUserMapper>();
+                foreach (OperatorUserMapper s in collec)
+                {
+                    _dbContext.Set<OperatorUserMapper>().Remove(s);
+                }
+               
+                
                 for (int i = 0; i < users.OperatorUserMapper.Count(); i++)
                 {
-                    OperatorUserMapper oldOperatorUser = _dbContext.OperatorUserMapper.Find(users.OperatorUserMapper.ToList()[i].Id);
-                    if (oldOperatorUser != null)
-                    {
+                    //OperatorUserMapper oldOperatorUser = _dbContext.OperatorUserMapper.Find(users.OperatorUserMapper.ToList()[i].Id);
+                    OperatorUserMapper oldOperatorUser = new OperatorUserMapper();
+                    
                         OperatorUserMapper newoperators = users.OperatorUserMapper.ToList()[i];
                         oldOperatorUser.UserId = users.Id;
                         oldOperatorUser.ModifiedBy = newoperators.ModifiedBy;
                         oldOperatorUser.LocationId = newoperators.LocationId;
                         oldOperatorUser.ModifiedBy = newoperators.ModifiedBy;
                         oldOperatorUser.ModifiedOn = DateTime.Now;
-                    }
+                        oldOperatorUser.CreatedBy = newoperators.ModifiedBy;
+                        oldOperatorUser.CreatedOn = DateTime.Now;
+                        oldOperatorUser.UserName = "Tester";
+                        oldOperatorUser.IsActive = true;
+                    _dbContext.Set<OperatorUserMapper>().Add(oldOperatorUser);
+                    
                 }
+               
                 _dbContext.Update(ousers);
                 _dbContext.SaveChanges();
 
@@ -259,7 +304,43 @@ namespace UsersService.Infrastructure.Repositories.Assets
             return (users);
 
         }
+        public async Task<otpdata> Getotp(string emailid, string Otp)
+        {
+            otpdata getotpdata = new otpdata();
+            var result = (from m in _dbContext.Users
+                          select new otpdata
+                          {
+                              email = m.UserPrincipalName,
+                              obectId=m.ObjectId,
+                              otp = m.Otp,                             
+                          }).Where(x => x.email == emailid && x.otp==Otp).FirstOrDefault();
+            
+                getotpdata = result;
+          
+            return getotpdata;
+        }
 
+        public async Task<otpdata> Updateotp(string EmailId, string otp)
+        {
+            Users Users=new Users();
+            otpdata otpdata=new otpdata();
+            try
+            {
+
+                Users = _dbContext.Users.FirstOrDefault(m=>m.UserPrincipalName.ToLower()==EmailId.ToLower());
+                Users.Otp = otp;
+                Users.OtpDateTime = DateTime.Now;                
+                _dbContext.Update(Users);
+                _dbContext.SaveChanges();
+
+            }
+            catch (Exception ex)
+            {
+            }
+            otpdata.otp = Users.Otp;
+            return otpdata;
+
+        }
         public async Task<GetUserobjectbyidDT> GetUserbyobjectId(string userid)
         {
             GetUserobjectbyidDT getUserResponseDT = new GetUserobjectbyidDT();
@@ -289,6 +370,120 @@ namespace UsersService.Infrastructure.Repositories.Assets
                 getUserResponseDT.data = null;
             }
             return getUserResponseDT;
+        }
+        public async Task<EmailResponse> GetUserEmail(string Useremailid)
+        {
+            EmailResponse getEmailResponse = new EmailResponse();
+            var result = (from m in _dbContext.Users
+                          where (m.EmailId== Useremailid)
+                          select new EmailResponse
+                          {
+                              useremail = m.UserPrincipalName,
+                              isActive=m.IsActive,
+                          }).FirstOrDefault();
+
+            if (result != null)
+            {
+                getEmailResponse.StatusCode = (int)HttpStatusCode.OK;
+                getEmailResponse.StatusMessage = "Record Found";
+                getEmailResponse.useremail = result.useremail;
+                getEmailResponse.isActive = result.isActive;
+            }
+            else
+            {
+                getEmailResponse.StatusCode = (int)HttpStatusCode.OK;
+                getEmailResponse.StatusMessage = "Record not Found";
+                getEmailResponse.isActive = false;
+                getEmailResponse.useremail = null;
+            }
+            return getEmailResponse;
+        }
+
+        public async Task<GetUserProfileResponseDT> GetByProfileUser()
+        {
+            GetUserProfileResponseDT getUserResponseDT = new GetUserProfileResponseDT();
+            var result = (from m in _dbContext.Users
+                          join country in _dbContext.Country
+                          on m.CountryID equals country.Id
+                          join state in _dbContext.State
+                          on m.StateID equals state.Id
+                          where (m.ObjectId == _tokenbase.getobjectid())
+                          select new GetUserProfileResponse
+                          {
+                              Id = m.Id,
+                              EmailId = m.EmailId,
+                              adminName = m.name,
+                              PhoneNumber = m.PhoneNumber,
+                              addressLine1 = m.AddressLine1,
+                              addressLine2 = m.AddressLine2,
+                              CountryID = country.Id,
+                              countryName = country.countryName,
+                              StateID = state.Id,
+                              cityName = m.CityName == null ? "" : m.CityName,
+                              stateName = state.stateName,
+                              zipcode=m.ZipCode,
+                              ImagePath=m.ImagePath,
+                          }).FirstOrDefault();
+
+            if (result != null)
+            {
+                getUserResponseDT.StatusCode = (int)HttpStatusCode.OK;
+                getUserResponseDT.StatusMessage = "Record Found";
+                getUserResponseDT.data = result;
+            }
+            else
+            {
+                getUserResponseDT.StatusCode = (int)HttpStatusCode.OK;
+                getUserResponseDT.StatusMessage = "Record not Found";
+                getUserResponseDT.data = null;
+            }
+            return getUserResponseDT;
+        }
+
+        public async Task<Users> UpdateUserProfile(Users users)
+        {
+
+            try
+            {
+
+                Users ousers = _dbContext.Users.Find(users.Id);
+                ousers.PhoneNumber = users.PhoneNumber;
+                ousers.AddressLine1 = users.AddressLine1;
+                ousers.AddressLine2 = users.AddressLine2;
+                ousers.CityName = users.CityName;
+                ousers.StateID = users.StateID;
+                ousers.CountryID = users.CountryID;
+                ousers.ZipCode = users.ZipCode;
+                ousers.ModifiedBy = users.ModifiedBy;
+                ousers.ModifiedOn = DateTime.Now;
+                _dbContext.Update(ousers);
+                _dbContext.SaveChanges();
+
+            }
+            catch (Exception ex)
+            {
+
+            }
+            return (users);
+
+        }
+        public async Task<Users> UpdateUserPicture(Users users)
+        {
+
+            try
+            {
+                Users ousers = _dbContext.Users.FirstOrDefault(m => m.ObjectId == _tokenbase.getobjectid());
+                ousers.ImagePath = users.ImagePath;
+                _dbContext.Update(ousers);
+                _dbContext.SaveChanges();
+
+            }
+            catch (Exception ex)
+            {
+
+            }
+            return (users);
+
         }
     }
 }

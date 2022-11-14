@@ -12,5 +12,13 @@ namespace UsersService.Application.Commands.AuthPassword
     {
         public string emailid { get; set; }
         public string password { get; set; }
+        public string accesstoken { get; set; }
+    }
+
+    public class OtpResponse
+    {
+        public int StatusCode { get; set; }
+        public string Message { get; set; }
+        public string resettoken { get; set; }
     }
 }

@@ -42,7 +42,7 @@ namespace UsersService.Core.Response
         public string AddressLine2 { get; set; }
         public long? CountryID { get; set; }
         public long? StateID { get; set; }
-        public long? CityID { get; set; }
+        //public long? CityID { get; set; }
         public string countryName { get; set; }
         public string stateName { get; set; }
         public string cityName { get; set; }
@@ -62,7 +62,7 @@ namespace UsersService.Core.Response
         public string AddressLine2 { get; set; }
         public long? CountryID { get; set; }
         public long? StateID { get; set; }
-        public long? CityID { get; set; }
+        //public long? CityID { get; set; }
         public string countryName { get; set; }
         public string stateName { get; set; }
         public string cityName { get; set; }

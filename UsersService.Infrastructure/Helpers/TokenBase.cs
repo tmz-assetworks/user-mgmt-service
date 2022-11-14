@@ -15,9 +15,8 @@ namespace UsersService.Infrastructure.Helpers
         {
             var handler = new JwtSecurityTokenHandler();
             var jwtSecurityToken = handler.ReadJwtToken(acces_token);
-            return jwtSecurityToken.Claims.First(claim => claim.Type == "cid").Value;
+            return jwtSecurityToken.Claims.First(claim => claim.Type == "oid").Value;
         }
-
         public string getobjectid()
         {
             var handler = new JwtSecurityTokenHandler();
