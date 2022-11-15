@@ -20,6 +20,18 @@ namespace UsersService.Infrastructure.DBContext
         public DbSet<UsersService.Core.Entities.OperatorUserMapper> OperatorUserMapper { get; set; }
         public DbSet<UsersService.Core.Entities.Users> Users { get; set; }
         public DbSet<UsersService.Core.Entities.City> City { get; set; }
+        public DbSet<UsersService.Core.Entities.Charger> Charger { get; set; }
+        public DbSet<UsersService.Core.Entities.DispenserStatus> DispenserStatus { get; set; }
+        public DbSet<UsersService.Core.Entities.Model> Model { get; set; }
+        public DbSet<UsersService.Core.Entities.Modem> Modem { get; set; }
+        public DbSet<UsersService.Core.Entities.Pad> Pads { get; set; }
+        public DbSet<UsersService.Core.Entities.PowerCabinet> PowerCabinet { get; set; } 
+        public DbSet<UsersService.Core.Entities.Cable> Cables { get; set; }
+        public DbSet<UsersService.Core.Entities.SwitchGear> SwitchGears { get; set; }
+
+        public DbSet<UsersService.Core.Entities.RFIDReader> RFIDReaders { get; set; }
+
+        
 
     }
 }

@@ -40,11 +40,16 @@ namespace UsersService.Core.Entities
        
         public virtual State State { get; set; }
         public long? StateID { get; set; }
-        public long? CityID { get; set; }
+        //public virtual City City { get; set; }  
+        //public long? CityID { get; set; }
 
         //[DataMember(Name = "city", EmitDefaultValue = false)]
         //[Column(TypeName = "nvarchar(100)")]
         //public string city { get; set; }
+        [Required]
+        [DataMember(Name = "CityName", EmitDefaultValue = false)]
+        [Column(TypeName = "nvarchar(200)")]
+        public string CityName { get; set; }
 
         [DataMember(Name = "pointofcontact", EmitDefaultValue = false)]
         [Column(TypeName = "nvarchar(100)")]
@@ -61,7 +66,7 @@ namespace UsersService.Core.Entities
 
         [Required]
         [DataMember(Name = "zipCode", EmitDefaultValue = false)]
-        [Column(TypeName = "nvarchar(6)")]
+        [Column(TypeName = "nvarchar(9)")]
         public string zipCode { get; set; }
 
         [DataMember(Name = "createdBy", EmitDefaultValue = false)]

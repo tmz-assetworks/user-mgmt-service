@@ -29,6 +29,8 @@ namespace UsersService.Core.Mapper
             //.ForMember(d => d.ModifiedBy, o => o.MapFrom(s => s.))
             //.ForMember(d => d.CustomerID, o => o.MapFrom(s => s.CustomerID));
             //CreateMap<UserRoles, UpdateUserCommand>().ReverseMap();
+            CreateMap<Users, UpdateUserProfileImage>().ReverseMap();
+            CreateMap<Users, UpdateUserProfileCommand>().ReverseMap();
             CreateMap<Users, UpdateUserCommand>().ReverseMap();
             CreateMap<Users, DeleteUserCommand>().ReverseMap();
             CreateMap<Customers, CustomerResponse>().ReverseMap();

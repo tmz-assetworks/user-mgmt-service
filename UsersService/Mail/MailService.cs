@@ -1,6 +1,10 @@
 ﻿
+using Microsoft.AspNetCore.Http;
+using Microsoft.IdentityModel.Tokens;
+using Serilog;
 using System.Net.Mail;
 using UsersService.Api.Model;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace UsersService.Api.Mail
 {
@@ -39,6 +43,29 @@ namespace UsersService.Api.Mail
                // Console.WriteLine(ex.ToString());
             }
 
+        }
+
+        public  async Task SendEmail(string nikname, string userprincipal, string emailId, long rOTP)
+        {
+            MailRequest request = new MailRequest();
+            if (Configuration["flag:Emailflag"] == "0")
+            {
+                request.ToEmail = "ashu.setiya@assetworks.com";
+                 //request.ToEmail = "tripathi7800@gmail.com";
+                request.frommail = "mamta.mishra@assetworks.com";
+            }
+            else
+            {
+                request.ToEmail = emailId;
+                request.frommail = "mamta.mishra@assetworks.com";
+            }
+
+            request.Subject = "Registration OTP";
+            request.Body = "Dear " + nikname + ", <br><br> Your OTP Is:" + " " + rOTP + ". For verify otp please <a href=\""+Configuration["BaseUrl:fronendurl"] +"/verifyOTP?emailid=" + emailId + "\">click hear</a> <br><br> Regards <br> Assetwork Teams";
+
+            UsersService.Api.Mail.MailService mailService = new UsersService.Api.Mail.MailService(Configuration);
+            mailService.SendEmailAsync(request);
+            Console.WriteLine("Mail Response :" + request);
         }
     }
 }

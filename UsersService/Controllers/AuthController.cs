@@ -1,3 +1,4 @@
+using Azure;
 using Azure.Core;
 using Azure.Identity;
 using MediatR;
@@ -17,6 +18,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq.Expressions;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -37,7 +39,9 @@ using UsersService.Core.Entities;
 using UsersService.Core.Response;
 using UsersService.Responses.Users;
 using VerifyAssetWorksAzureAD.Model;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 using ClientCredential = Microsoft.IdentityModel.Clients.ActiveDirectory.ClientCredential;
+using Extensions = UsersService.Infrastructure.Helpers.Extensions;
 
 namespace UsersService.Api.Controllers
 {
@@ -53,9 +57,10 @@ namespace UsersService.Api.Controllers
 
         private readonly IConfiguration _baseconfiguration;
         private readonly IMediator _mediator;
-        private readonly ILogger<UserController> _logger;
+        //private readonly ILogger<UserController> _logger;
         private static Random random = new Random();
         string JSONString = String.Empty;
+
         string getjson(object res)
         {
             string JSONString = String.Empty;
@@ -88,6 +93,12 @@ namespace UsersService.Api.Controllers
                     {"Jwt:Key",Environment.GetEnvironmentVariable("JWT_KEY")},
                     {"Jwt:Issuer", Environment.GetEnvironmentVariable("JWT_ISSUER")},
                     {"Jwt:Audience", Environment.GetEnvironmentVariable("JWT_AUD")},
+                    {"flag:Emailflag", Environment.GetEnvironmentVariable("flag_Emailflag")},
+                    {"MailSettings:UserName", Environment.GetEnvironmentVariable("Mail_UserName")},
+                    {"MailSettings:Password", Environment.GetEnvironmentVariable("Mail_Password")},
+                    {"MailSettings:Host", Environment.GetEnvironmentVariable("Mail_Host")},
+                    {"MailSettings:Port", Environment.GetEnvironmentVariable("Mail_Port")},
+                    {"BaseUrl:fronendurl", Environment.GetEnvironmentVariable("BaseUrl_fronted")},
                 };
             _baseconfiguration = new ConfigurationBuilder().AddInMemoryCollection(myConfiguration).Build();
         }
@@ -136,94 +147,123 @@ namespace UsersService.Api.Controllers
         [Route("ChangePassword")]
         public async Task<IActionResult> ChangePassword([FromBody] ResetPassword resetPassword)
         {
-            string str = "";
-            if (string.IsNullOrEmpty(resetPassword.emailid) || string.IsNullOrEmpty(resetPassword.password))
-            {
-                 str = @"{""StatusCode"":""400"",""Message"":""Bad Request""}";
-                return BadRequest( str);
-            }
-            try
-            {
-            UserNModel userN = new UserNModel();
-            PasswordProfile passwordProfile = new PasswordProfile();
-            passwordProfile.ForceChangePasswordNextSignIn=false;
-            passwordProfile.Password= EncryptDecrypt.Decrypt(resetPassword.password, _baseconfiguration["EncryptDecryptkey"]);
+            var otptoken = resetPassword.accesstoken;
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_baseconfiguration["Jwt:Key"]));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
-            userN.passwordProfile = passwordProfile;
-            HttpClient httpClient = new HttpClient();
-            StringContent stringContent = new StringContent(JsonSerializer.Serialize<UserNModel>(userN), Encoding.UTF8, "application/json");
-            httpClient.DefaultRequestHeaders.Authorization=(new AuthenticationHeaderValue("Bearer", GetAdminAccessToken()));
-            HttpResponseMessage httpResponseMessage = await httpClient.PatchAsync(string.Concat("https://graph.microsoft.com/v1.0/users/", resetPassword.emailid), stringContent);
-            
-            str = await httpResponseMessage.Content.ReadAsStringAsync();
-            if (httpResponseMessage.IsSuccessStatusCode)
-            {
-                str = @"{""StatusCode"":""200"",""Message"":""Password Reset Success"", ""Data"":""" + str + @"""}";
+            var handler = new JwtSecurityTokenHandler();
+            var jwtSecurityToken = handler.ReadJwtToken(otptoken);
+            var objemail = jwtSecurityToken.Claims.First(claim => claim.Type == "email").Value;
+            var objiss = jwtSecurityToken.Claims.First(claim => claim.Type == "iss").Value;
+            var objexp = jwtSecurityToken.Claims.First(claim => claim.Type == "exp").Value;
+            var objaud = jwtSecurityToken.Claims.First(claim => claim.Type == "aud").Value;
 
-                return Ok(str);
-            }
-            else
-            {
-                str = @"{""StatusCode"":"""+ ((int)httpResponseMessage.StatusCode).ToString() + @""",""Message"":""Password Reset error"",""Data"":"""+ str +@"""}";
-                return StatusCode((int)httpResponseMessage.StatusCode,str);
-            }
-            }
-            catch (Exception ex)
-            {
+            long timestamp = Convert.ToInt64(objexp);
+            DateTime compareTo = DateTime.UtcNow;
+            DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds(timestamp);
+            int result = DateTime.Compare(dateTimeOffset.UtcDateTime, compareTo);
+                string str = "";
+                if (string.IsNullOrEmpty(resetPassword.emailid) || string.IsNullOrEmpty(resetPassword.password))
+                {
+                    str = @"{""StatusCode"":""400"",""Message"":""Bad Request""}";
+                    return BadRequest(str);
+                }
+                try
+                {
+                if (result >= 0)
+                {
+                    UserNModel userN = new UserNModel();
+                    PasswordProfile passwordProfile = new PasswordProfile();
+                    passwordProfile.ForceChangePasswordNextSignIn = false;
+                    passwordProfile.Password = EncryptDecrypt.Decrypt(resetPassword.password, _baseconfiguration["EncryptDecryptkey"]);
 
-                str = @"{""StatusCode"":""400"",""Message"":""Bad Request"",""Data"":""" + ex.Message + @"""}";
-                return BadRequest(str);
-            }
+                    userN.passwordProfile = passwordProfile;
+                    HttpClient httpClient = new HttpClient();
+                    StringContent stringContent = new StringContent(JsonSerializer.Serialize<UserNModel>(userN), Encoding.UTF8, "application/json");
+                    httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAdminAccessToken()));
+                    HttpResponseMessage httpResponseMessage = await httpClient.PatchAsync(string.Concat("https://graph.microsoft.com/v1.0/users/", objemail), stringContent);
 
+                    str = await httpResponseMessage.Content.ReadAsStringAsync();
+                    if (httpResponseMessage.IsSuccessStatusCode)
+                    {
+                        str = @"{""StatusCode"":""200"",""Message"":""Password Reset Success"", ""Data"":""" + str + @"""}";
+
+                        return Ok(str);
+                    }
+                    else
+                    {
+                        str = @"{""StatusCode"":""" + ((int)httpResponseMessage.StatusCode).ToString() + @""",""Message"":""Password Reset error"",""Data"":""" + str + @"""}";
+                        return StatusCode((int)httpResponseMessage.StatusCode, str);
+                    }
+                 }
+                else
+                {
+                    str = @"{""StatusCode"":""400"",""Message"":""Bad Request"",""Data"":""" + "Token expire" + @"""}";
+                    return BadRequest(str);
+                }
+                }
+                catch (Exception ex)
+                {
+
+                    str = @"{""StatusCode"":""400"",""Message"":""Bad Request"",""Data"":""" + ex.Message + @"""}";
+                    return BadRequest(str);
+                }
         }
         [HttpGet]
         [Route("VerifyUserByOTP")]
         public async Task<IActionResult> VerifyUserByOTP(string emailid,string OTP)
         {
-            
+            OtpResponse OtpResponse = new OtpResponse();
+            OtpResponse.resettoken = null;
+            var userprincipal = await Username(emailid);
+            var result = await _mediator.Send(new otpverifyQuery(userprincipal.useremail, OTP));
             string responce = string.Empty;
             if (string.IsNullOrEmpty(emailid) || string.IsNullOrEmpty(OTP))
             {
-                responce = @"{""StatusCode"":""400"",""Message"":""" + "Username or otp blank" + @""",""data"": [{""token"":""" + null + @"""}]}";
-                return BadRequest(responce);
+                OtpResponse.StatusCode = 400;
+                OtpResponse.Message = "Username or otp blank";
+                return BadRequest(OtpResponse);
 
             }
             try
             {
-                if (OTP == "123456")
+                if (OTP ==result.otp)
                 {
 
                     HttpClient httpClient = new HttpClient();
                     // StringContent stringContent = new StringContent(JsonSerializer.Serialize<UserNModel>(userN), Encoding.UTF8, "application/json");
                     httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAccessToken()));
-                    HttpResponseMessage httpResponseMessage = await httpClient.GetAsync(string.Concat("https://graph.microsoft.com/v1.0/users/", emailid));
+                    HttpResponseMessage httpResponseMessage = await httpClient.GetAsync(string.Concat("https://graph.microsoft.com/v1.0/users/", userprincipal.useremail));
 
                     Microsoft.AspNetCore.Mvc.Formatters.MediaTypeCollection myContentTypes = new Microsoft.AspNetCore.Mvc.Formatters.MediaTypeCollection { System.Net.Mime.MediaTypeNames.Application.Json };
                     string str = await httpResponseMessage.Content.ReadAsStringAsync();
                 
                     if (httpResponseMessage.IsSuccessStatusCode)
                     {
-                        responce = @"{""StatusCode"":""200"",""Message"":""Otp Validated Success""}";
-                    
-                         return Ok(responce);
+                        OtpResponse.StatusCode = 200;
+                        OtpResponse.Message = "Otp Validated Success";
+                        OtpResponse.resettoken = GenerateotpToken(userprincipal.useremail);
+                         return Ok(OtpResponse);
                     }
                     else
                     {
-                        responce = @"{""StatusCode"":"""+ ((int)httpResponseMessage.StatusCode).ToString() + @""",""Message"":""User not found""}";
-                        return StatusCode((int)httpResponseMessage.StatusCode, responce);
+                        OtpResponse.StatusCode = (int)httpResponseMessage.StatusCode;
+                        OtpResponse.Message = "User not found";
+                        return StatusCode((int)httpResponseMessage.StatusCode, OtpResponse);
                     }
                 }
                 else
                 {
-                    responce = @"{""StatusCode"":""400"",""Message"":""Otp not Valid""}";
-                    return BadRequest(responce);
+                    OtpResponse.StatusCode = 400;
+                    OtpResponse.Message = "Otp not Valid";
+                    return BadRequest(OtpResponse);
                 }
             }
             catch (Exception ex)
             {
-
-                responce = @"{""StatusCode"":""400"",""Message"":""" + "Bad Request" + @"""}";
-                return BadRequest(responce);
+                OtpResponse.StatusCode = 400;
+                OtpResponse.Message = "Bad Request";
+                return BadRequest(OtpResponse);
             }
 
         }
@@ -231,7 +271,10 @@ namespace UsersService.Api.Controllers
         [Route("VerifyUser")]
         public async Task<IActionResult> VerifyUser(string emailid)
         {
+            var userprincipal = await Username(emailid);
             string responce = string.Empty;
+            string rotp = Extensions.Getrandomnumber().ToString();
+            var result = await _mediator.Send(new UpdateOtpQuery(userprincipal.useremail, rotp));
             if (string.IsNullOrEmpty(emailid))
             {
                 responce = @"{""StatusCode"":""400"",""Message"":""" + "Username blank" + @""",""data"": [{""token"":""" + null + @"""}]}";
@@ -240,44 +283,50 @@ namespace UsersService.Api.Controllers
             }
             try
             {
-                MailRequest request = new MailRequest();
-                request.ToEmail = "ashu.setiya@assetworks.com";
-                request.frommail = "mamta.mishra@assetworks.com";
+                
+                    MailRequest request = new MailRequest();
+                    if (_baseconfiguration["flag:Emailflag"] == "0")
+                    {
+                        request.ToEmail = "ashu.setiya@assetworks.com";
+                        //request.ToEmail = "tripathi7800@gmail.com";
+                        request.frommail = "mamta.mishra@assetworks.com";
+                    }
+                    else
+                    {
+                        request.ToEmail = emailid;
+                        request.frommail = "mamta.mishra@assetworks.com";
+                    }
 
-                //request.ToEmail = "vijay.mani@tekmindz.com";
-                //request.frommail = "ashu.setiya@assetworks.com";
+                    request.Body = "Your OTP Is:" + " " + rotp;
+                    request.Subject = "OTP";
+                    UsersService.Api.Mail.MailService mailService = new UsersService.Api.Mail.MailService(_configuration);
+                    await mailService.SendEmailAsync(request);
+                    HttpClient httpClient = new HttpClient();
+                    // StringContent stringContent = new StringContent(JsonSerializer.Serialize<UserNModel>(userN), Encoding.UTF8, "application/json");
+                    httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAccessToken()));
+                    HttpResponseMessage httpResponseMessage = await httpClient.GetAsync(string.Concat("https://graph.microsoft.com/v1.0/users/", userprincipal.useremail));
+                
+                    Microsoft.AspNetCore.Mvc.Formatters.MediaTypeCollection myContentTypes = new Microsoft.AspNetCore.Mvc.Formatters.MediaTypeCollection { System.Net.Mime.MediaTypeNames.Application.Json };
+                    responce = await httpResponseMessage.Content.ReadAsStringAsync();
+                    if (httpResponseMessage.IsSuccessStatusCode)
+                    {
 
+                        responce = @"{""StatusCode"":""200"",""Message"":""Verify Success"",""data"":" + responce + "}";
 
-                request.Body = "Your OTP Is:" + " " + "123456";
-                request.Subject = "OTP";
+                        return Ok(responce);
+                    }
+                    else
+                    {
+                        responce = @"{""StatusCode"":""400"",""Message"":""User not found"",""data"":" + responce + "}";
 
-                UsersService.Api.Mail.MailService mailService = new UsersService.Api.Mail.MailService(_configuration);
-                await mailService.SendEmailAsync(request);
-                HttpClient httpClient = new HttpClient();
-           // StringContent stringContent = new StringContent(JsonSerializer.Serialize<UserNModel>(userN), Encoding.UTF8, "application/json");
-            httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAccessToken()));
-            HttpResponseMessage httpResponseMessage = await httpClient.GetAsync(string.Concat("https://graph.microsoft.com/v1.0/users/", emailid));
+                        return BadRequest(responce);
+                    }
+                }
             
-            Microsoft.AspNetCore.Mvc.Formatters.MediaTypeCollection myContentTypes = new Microsoft.AspNetCore.Mvc.Formatters.MediaTypeCollection { System.Net.Mime.MediaTypeNames.Application.Json };
-             responce = await httpResponseMessage.Content.ReadAsStringAsync();
-            if (httpResponseMessage.IsSuccessStatusCode)
-            {
-               
-                responce = @"{""StatusCode"":""200"",""Message"":""Verify Success"",""data"":" + responce + "}";
-
-                return Ok(responce);
-            }
-            else
-            {
-                    responce = @"{""StatusCode"":""400"",""Message"":""User not found"",""data"":" + responce + "}";
-
-                    return BadRequest(responce);
-            }
-            }
             catch (Exception ex)
             {
 
-                responce = @"{""StatusCode"":""400"",""Message"":""" + "Bad Request ," + ex.Message.ToString()  + @"""}";
+                responce = @"{""StatusCode"":""400"",""Message"":""" + "Bad Request ," + ex.Message.ToString() + @"""}";
                 return BadRequest(responce);
             }
 
@@ -286,7 +335,7 @@ namespace UsersService.Api.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Post([FromBody] AuthModel authparam)
         {
-
+           var userprincipal= await Username(authparam.username);
             string responce = string.Empty;
             if (string.IsNullOrEmpty(authparam.username) || string.IsNullOrEmpty(authparam.password))
             {
@@ -297,79 +346,90 @@ namespace UsersService.Api.Controllers
             }
             try
             {
-                string clientid = this._baseconfiguration["AzureAd:clientId"];
-                string TenantId = this._baseconfiguration["AzureAd:TenantId"];
-                string clientsecret = this._baseconfiguration["AzureAd:clientSecret"];
-                HttpClient httpClient = new HttpClient();
-                httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", this.GetAccessToken()));
-                string str1 = string.Concat("https://login.microsoftonline.com/", TenantId, "/oauth2/token?api-version=1.0");
-                List<KeyValuePair<string, string>> list = new List<KeyValuePair<string, string>>();
-                list.Add(new KeyValuePair<string, string>("resource", "https://graph.microsoft.com"));
-                list.Add(new KeyValuePair<string, string>("client_id", clientid));
-                list.Add(new KeyValuePair<string, string>("client_secret", clientsecret));
-                list.Add(new KeyValuePair<string, string>("grant_type", "password"));
-                list.Add(new KeyValuePair<string, string>("username", authparam.username));
-                list.Add(new KeyValuePair<string, string>("password", EncryptDecrypt.Decrypt(authparam.password, _baseconfiguration["EncryptDecryptkey"])));
-                list.Add(new KeyValuePair<string, string>("scope", "openid profile User.Read"));
-                 //list.Add(new KeyValuePair<string, string>("scope", "openid,api://7698cbed-7d9f-43b3-b9cd-a4f09b9b55ed/access_as_user"));
-                List<KeyValuePair<string, string>> list1 = list;
-                FormUrlEncodedContent formUrlEncodedContent = new FormUrlEncodedContent(list1);
-                HttpResponseMessage result = httpClient.PostAsync(str1, formUrlEncodedContent).Result;
-
-                if (result.IsSuccessStatusCode)
+                if (userprincipal.isActive == true)
                 {
-                   
-                    responce = result.Content.ReadAsStringAsync().Result;
+                    string clientid = this._baseconfiguration["AzureAd:clientId"];
+                    string TenantId = this._baseconfiguration["AzureAd:TenantId"];
+                    string clientsecret = this._baseconfiguration["AzureAd:clientSecret"];
+                    HttpClient httpClient = new HttpClient();
+                    httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", this.GetAccessToken()));
+                    string str1 = string.Concat("https://login.microsoftonline.com/", TenantId, "/oauth2/token?api-version=1.0");
+                    List<KeyValuePair<string, string>> list = new List<KeyValuePair<string, string>>();
+                    list.Add(new KeyValuePair<string, string>("resource", clientid));
+                    list.Add(new KeyValuePair<string, string>("client_id", clientid));
+                    list.Add(new KeyValuePair<string, string>("client_secret", clientsecret));
+                    list.Add(new KeyValuePair<string, string>("grant_type", "password"));
+                    list.Add(new KeyValuePair<string, string>("username", userprincipal.useremail));
+                    list.Add(new KeyValuePair<string, string>("password", EncryptDecrypt.Decrypt(authparam.password, _baseconfiguration["EncryptDecryptkey"])));
+                    list.Add(new KeyValuePair<string, string>("scope", "openid User.Read"));
+                    //list.Add(new KeyValuePair<string, string>("scope", "openid,api://7698cbed-7d9f-43b3-b9cd-a4f09b9b55ed/access_as_user"));
+                    List<KeyValuePair<string, string>> list1 = list;
+                    FormUrlEncodedContent formUrlEncodedContent = new FormUrlEncodedContent(list1);
+                    HttpResponseMessage result = httpClient.PostAsync(str1, formUrlEncodedContent).Result;
 
-                    JObject jObj = JObject.Parse(responce);
-                    string id_token_AD = jObj["id_token"].ToString();
-                    var tokenString = GenerateJSONWebToken( id_token_AD);
-                    
-                    AuthResponce res= new AuthResponce() {
-                       StatusCode = 200,
-                       Message= "Login Success",
-                       data=new List<AuthData>() { 
-                       new AuthData() { 
+                    if (result.IsSuccessStatusCode)
+                    {
+
+                        responce = result.Content.ReadAsStringAsync().Result;
+
+                        JObject jObj = JObject.Parse(responce);
+                        //string id_token_AD = jObj["id_token"].ToString();
+                        //var tokenString = GenerateJSONWebToken( id_token_AD);
+
+                        AuthResponce res = new AuthResponce()
+                        {
+                            StatusCode = 200,
+                            Message = "Login Success",
+                            data = new List<AuthData>() {
+                       new AuthData() {
                        access_token=jObj["access_token"].ToString(),
-                       id_token=tokenString,
+                       id_token= jObj["id_token"].ToString(),
                        refresh_token=jObj["refresh_token"].ToString(),
                        resource="tokenString",
                        token_type="Bearer"
                        }
                        }
 
-                    };
+                        };
 
-                    //response = jObj["access_token"].ToString();
-                   // responce = @"{""StatusCode"":""200"",""Message"":""Login Success"",""Token"":"""+ tokenString + @""",""data"":" + responce + "}";
+                        //response = jObj["access_token"].ToString();
+                        // responce = @"{""StatusCode"":""200"",""Message"":""Login Success"",""Token"":"""+ tokenString + @""",""data"":" + responce + "}";
 
-                    return Ok(res);
+                        return Ok(res);
+                    }
+                    else
+                    {
+
+                        responce = result.Content.ReadAsStringAsync().Result;
+                        string errorMessage = "";
+                        try
+                        {
+                            errorMessage = JObject.Parse(responce)["error_codes"].ToString();
+                        }
+                        catch (Exception ex) { }
+
+                        if (errorMessage.Contains("50126"))
+                        {
+                            errorMessage = "Invalid password";
+
+                        }
+                        else if (errorMessage.Contains("50034"))
+                        {
+                            errorMessage = "Invalid Username";
+
+                        }
+                        responce = @"{""StatusCode"":""" + result.StatusCode.ToString() + @""",""Message"":""" + errorMessage + @""",""data"":" + responce + "}";
+
+                        return StatusCode((int)result.StatusCode, responce);
+                    }
                 }
                 else
                 {
+                    responce = @"{""StatusCode"":""" + 400 + @""",""Message"":""" + "User InActive" + @""",""data"":" + responce + "}";
 
-                    responce = result.Content.ReadAsStringAsync().Result;
-                    string errorMessage = "";
-                    try
-                    {
-                        errorMessage = JObject.Parse(responce)["error_codes"].ToString();
-                    }
-                    catch (Exception ex) { }
-
-                    if (errorMessage.Contains("50126"))
-                    {
-                        errorMessage = "Invalid password";
-
-                    }
-                    else if (errorMessage.Contains("50034"))
-                    {
-                        errorMessage = "Invalid Username";
-
-                    }
-                    responce = @"{""StatusCode"":""" + result.StatusCode.ToString() + @""",""Message"":""" + errorMessage + @""",""data"":" + responce + "}";
-
-                    return StatusCode((int)result.StatusCode, responce);
+                    return BadRequest(responce);
                 }
+                
             }
             catch (Exception ex)
             {
@@ -401,7 +461,7 @@ namespace UsersService.Api.Controllers
                 httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", this.GetAccessToken()));
                 string str1 = string.Concat("https://login.microsoftonline.com/", TenantId, "/oauth2/token?api-version=1.0");
                 List<KeyValuePair<string, string>> list = new List<KeyValuePair<string, string>>();
-                list.Add(new KeyValuePair<string, string>("resource", "https://graph.microsoft.com"));
+                list.Add(new KeyValuePair<string, string>("resource", clientid));
                 list.Add(new KeyValuePair<string, string>("client_id", clientid));
                 list.Add(new KeyValuePair<string, string>("client_secret", clientsecret));
                 list.Add(new KeyValuePair<string, string>("grant_type", "refresh_token"));
@@ -419,8 +479,8 @@ namespace UsersService.Api.Controllers
                         responce = result.Content.ReadAsStringAsync().Result;
 
                         JObject jObj = JObject.Parse(responce);
-                        string id_token_AD = jObj["id_token"].ToString();
-                        var tokenString = GenerateJSONWebToken( id_token_AD);
+                        //string id_token_AD = jObj["id_token"].ToString();
+                        //var tokenString = GenerateJSONWebToken( id_token_AD);
 
                         AuthResponce res = new AuthResponce()
                         {
@@ -428,8 +488,8 @@ namespace UsersService.Api.Controllers
                             Message = "Login Success",
                             data = new List<AuthData>() {
                        new AuthData() {
-                       access_token=jObj["access_token"].ToString(),
-                       id_token=tokenString,
+                      access_token=jObj["access_token"].ToString(),
+                       id_token= jObj["id_token"].ToString(),
                        refresh_token=jObj["refresh_token"].ToString(),
                        resource="tokenString",
                        token_type="Bearer"
@@ -512,6 +572,25 @@ namespace UsersService.Api.Controllers
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        [NonAction]
+        private string GenerateotpToken(string email)
+        {
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_baseconfiguration["Jwt:Key"]));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+            var claims = new[] {
+                new Claim(JwtRegisteredClaimNames.Sub,  "Reset Token"),
+                new Claim(JwtRegisteredClaimNames.Email, email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+
+            var token = new JwtSecurityToken(_baseconfiguration["Jwt:Issuer"],
+                _baseconfiguration["Jwt:Audience"],
+                claims,
+                expires: DateTime.Now.AddMinutes(10),
+                signingCredentials: credentials);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
         [ApiExplorerSettings(IgnoreApi =true)]
         [NonAction]
         public string GetAdminAccessToken()
@@ -547,8 +626,23 @@ namespace UsersService.Api.Controllers
 
             return str2;
         }
+        [NonAction]
+        public async Task<EmailResponse> Username(String usermail) 
+        {
+            EmailResponse EmailResponse = new EmailResponse();
+            try
+            {
+                var res = await _mediator.Send(new GetUserEmailQuery(usermail));
+                return res;
+            }
 
-       
+            catch (Exception ex)
+            {
+                JSONString = "{\n  \"data\" : " + null + ",  \"StatusMessage\" : " + ex.Message.ToString() + ",\n  \"StatusCode\" : " + (int)HttpStatusCode.NotFound + " \n}";
+               // _logger.LogError(ex.ToString());
+            }
+            return EmailResponse;
+        }
 
     }
 

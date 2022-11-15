@@ -14,7 +14,7 @@ namespace UsersService.Application.Commands.Customer
         public string email { get; set; }
         public string notes { get; set; }
         public string pointofcontact { get; set; }
-        public long PhoneNumber { get; set; }
+        public string PhoneNumber { get; set; }
 
         public string AddressLine1 { get; set; }
 
@@ -26,9 +26,11 @@ namespace UsersService.Application.Commands.Customer
         public long StateID { get; set; }
 
 
-        public long CityID { get; set; }
+        //public long CityID { get; set; }
 
         public string ZipCode { get; set; }
+
+        public string CityName { get; set; }
 
         public string CreatedBy { get; set; }
 

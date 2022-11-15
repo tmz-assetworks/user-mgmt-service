@@ -12,7 +12,7 @@ namespace UsersService.Core.Repositories
     public interface ICustomerRepository : IRepository<UsersService.Core.Entities.Customers>
     {
         Task<AllCustomersResponse> GetAllCustomers(GetAllCustomerRequest getAllCustomerRequest);
-        Task<AllCustomerResp> GetByIdCustomers(long id);
+        Task<AllCustomerResp> GetByIdCustomers(string id); 
     }
 
 }

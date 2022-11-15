@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using Microsoft.AspNetCore.Http;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.Serialization;
@@ -19,9 +20,9 @@ namespace UsersService.Core.Entities
         public string ObjectId { get; set; }
 
         [Required]
-        [DataMember(Name = "userPrincipalName", EmitDefaultValue = false)]
+        [DataMember(Name = "UserPrincipalName", EmitDefaultValue = false)]
         [Column(TypeName = "nvarchar(200)")]
-        public string userPrincipalName { get; set; }
+        public string UserPrincipalName { get; set; }
 
         [DataMember(Name = "name", EmitDefaultValue = false)]
         [Column(TypeName = "nvarchar(100)")]
@@ -33,12 +34,9 @@ namespace UsersService.Core.Entities
         [Column(TypeName = "nvarchar(200)")]
         public string EmailId { get; set; }
 
-        [DataMember(Name = "DOB", EmitDefaultValue = false)]
-        public DateTime DOB { get; set; }
-
         [Required]
         [DataMember(Name = "phoneNumber", EmitDefaultValue = false)]
-        public long PhoneNumber { get; set; }
+        public string PhoneNumber { get; set; }
 
         [ForeignKey("CustomerID")]
         public virtual Customers? Customer { get; set; }
@@ -59,13 +57,13 @@ namespace UsersService.Core.Entities
         [ForeignKey("StateID")]
 
         public virtual State State { get; set; }
-        public long? StateID { get; set; }
-
-        public long? CityID { get; set; }
+        public long StateID { get; set; }
+        //public virtual City City { get; set; }
+        //public long CityID { get; set; }
 
         [Required]
         [DataMember(Name = "zipCode", EmitDefaultValue = false)]
-        [Column(TypeName = "nvarchar(6)")]
+        [Column(TypeName = "nvarchar(9)")]
         public string ZipCode { get; set; }
 
         [DataMember(Name = "createdBy", EmitDefaultValue = false)]
@@ -97,8 +95,17 @@ namespace UsersService.Core.Entities
         [DataMember(Name = "isActive", EmitDefaultValue = false)]
         [DefaultValue(true)]
         public bool IsActive { get; set; }
+        public string Otp { get; set; }
+        public DateTime OtpDateTime { get; set; }
+        [Required]
+        [DataMember(Name = "CityName", EmitDefaultValue = false)]
+        [Column(TypeName = "nvarchar(200)")]
+        public string CityName { get; set; }
 
-         public virtual ICollection<UserRoles> UserRoles { get; set; }
+        [Display(Name = "Profile Picture")]
+        public string? ImagePath { get; set; }
+
+        public virtual ICollection<UserRoles> UserRoles { get; set; }
         public virtual ICollection<OperatorUserMapper> OperatorUserMapper { get; set; }
     }
 }

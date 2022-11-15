@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -34,7 +35,7 @@ namespace UsersService.Core.Response
         //public string UserPrincipalName { get; set; }
         public string adminName { get; set; }
 
-        public long PhoneNumber { get; set; }
+        public string PhoneNumber { get; set; }
 
         public string addressLine1 { get; set; }
 
@@ -42,16 +43,13 @@ namespace UsersService.Core.Response
 
         public long? CountryID { get; set; }
         public long? StateID { get; set; }
-        public long? CityID { get; set; }
+        //public long? CityID { get; set; }
         public string countryName { get; set; }
         public string stateName { get; set; }
         public string cityName { get; set; }
 
         public string createdBy { get; set; }
         public string zipcode { get; set; }
-        public DateTime dob { get; set; }
-
-
         public DateTime CreatedOn { get; set; }
 
 
@@ -62,6 +60,7 @@ namespace UsersService.Core.Response
         public long? customerID { get; set; }
         public string customername { get; set; }
         public bool IsActive { get; set; }
+        public List<long> locationsId { get; set; }
     }
 
     public class CustomerDDL
@@ -104,5 +103,41 @@ namespace UsersService.Core.Response
     {
         public long Id { get; set; }
         public long RoleID { get; set; }
+    }
+    public class otpdata
+    {
+        public string email { get; set; }
+        public string obectId { get; set; }
+        public string otp { get; set; }
+    }
+
+    public class GetUserProfileResponseDT
+    {
+        public int StatusCode { get; set; }
+        public string StatusMessage { get; set; }
+        public GetUserProfileResponse data { get; set; }
+    }
+    public partial class GetUserProfileResponse
+    {
+        public long Id { get; set; }
+        public string EmailId { get; set; }
+        public string adminName { get; set; }
+        public string PhoneNumber { get; set; }
+        public string addressLine1 { get; set; }
+        public string addressLine2 { get; set; }
+        public long? CountryID { get; set; }
+        public long? StateID { get; set; }
+        //public long? CityID { get; set; }
+       
+        public string countryName { get; set; }
+        public string ImagePath { get; set; }
+        public string stateName { get; set; }
+        public string cityName { get; set; }
+        public string zipcode { get; set; }
+    }
+    public partial class UpdateUserProfilePicture 
+    {
+
+        public string ProfilePicture { get; set; }
     }
 }

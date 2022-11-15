@@ -52,7 +52,7 @@ namespace UsersService.Application.Handlers.Users.CommandHandlers
                 {
                     OperatorUserMapper.Add(new OperatorUserMapper()
                     {
-                        Id = request.operatorUserMapperCommand[i].id,
+                        Id = 0,
                         CreatedBy = request.ModifiedBy,
                         CreatedOn = DateTime.Now,
                         ModifiedOn = DateTime.Now,
@@ -60,7 +60,7 @@ namespace UsersService.Application.Handlers.Users.CommandHandlers
                         UserName = "Tester",
                         UserId = request.Id,
                         IsActive = true,
-                        LocationId = request.operatorUserMapperCommand[i].locationId,
+                        LocationId = request.operatorUserMapperCommand[i],
                     });
                 }
             }

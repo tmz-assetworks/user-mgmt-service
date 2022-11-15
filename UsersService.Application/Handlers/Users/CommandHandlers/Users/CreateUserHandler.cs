@@ -5,6 +5,7 @@ using UsersService.Core.Mapper;
 using UsersService.Core.Repositories.Users;
 using UsersService.Responses.Users;
 using OperatorUserMapper = UsersService.Core.Entities.OperatorUserMapper;
+using Extensions = UsersService.Infrastructure.Helpers.Extensions;
 
 namespace UsersService.Application.Handlers.Assets.CommandHandlers
 {
@@ -18,18 +19,22 @@ namespace UsersService.Application.Handlers.Assets.CommandHandlers
         }
         public async Task<UserResponse> Handle(CreateUserCommand request, CancellationToken cancellationToken)
         {
+            var rotp = Extensions.Getrandomnumber();
             var userEntitiy = UsersMapper.Mapper.Map<UsersService.Core.Entities.Users>(request);
             if (userEntitiy is null)
             {
                 throw new ApplicationException("Issue with mapper");
             }
+
             userEntitiy.IsActive = true;//set newly created customer as a active
             userEntitiy.CreatedOn = DateTime.Now;
             userEntitiy.ModifiedOn = DateTime.Now;
             userEntitiy.ModifiedBy = "";
             userEntitiy.ObjectId = request.objectid;
-            userEntitiy.userPrincipalName = request.userPrincipalName;
+            userEntitiy.UserPrincipalName = request.userPrincipalName;
             userEntitiy.UserRoles = userEntitiy.UserRoles;
+            userEntitiy.OtpDateTime = DateTime.Now;
+            userEntitiy.Otp = rotp.ToString();
             List<UserRoles> userRoles = new List<UserRoles>();
             for (int i = 0; i < request.UserRolesCommand.Count(); i++)
             {
@@ -59,7 +64,7 @@ namespace UsersService.Application.Handlers.Assets.CommandHandlers
                         UserName = "Tester",
                         UserId = 0,
                         IsActive = true,
-                        LocationId = request.operatorUserMapperCommand[i].locationId,
+                        LocationId = request.operatorUserMapperCommand[i],
                     });
                 }
             }

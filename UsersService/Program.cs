@@ -49,7 +49,6 @@ namespace UsersService.Api
                  .ConfigureWebHostDefaults(webBuilder =>
                  {
                      webBuilder.UseStartup<Startup>()
-
                      .UseUrls("http://*:6008");
                  });
 
