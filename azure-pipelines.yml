@@ -71,7 +71,7 @@ jobs:
       inputs:
         targetType: 'inline'
         script: |
-          Rename-Item -Path "$(Build.ArtifactStagingDirectory)/s" -NewName "publish"
+          Rename-Item -Path "$(Build.ArtifactStagingDirectory)/$(projectFolderName)" -NewName "publish"
 
     # copy the docker file to the artifact directory
     - task: CopyFiles@2
