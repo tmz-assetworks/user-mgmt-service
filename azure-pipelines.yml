@@ -18,7 +18,7 @@
 #
 
 trigger:
-- none
+- main
 
 pool: 'CMS Project' 
 
@@ -29,6 +29,7 @@ variables:
 
 jobs: 
 - job: PublishServiceArtifacts
+  displayName: 'Publish Service Artifacts'
   steps:
 
     # ensure the build agent is using .NET 6
@@ -75,6 +76,7 @@ jobs:
 
     # copy the docker file to the artifact directory
     - task: CopyFiles@2
+      displayName: 'Copy Dockerfile'
       inputs:
         SourceFolder: '$(Build.SourcesDirectory)'
         Contents: '**/$(projectFolderName)/Dockerfile'
@@ -92,6 +94,7 @@ jobs:
     
     # publish the artifacts
     - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifacts'
       inputs:
         PathtoPublish: '$(Build.ArtifactStagingDirectory)'
         ArtifactName: 'drop'
