@@ -1,19 +1,101 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+#
+# Pipeline that will build the service project and publish the artifacts so 
+# they can be picked up by a release. This pipeline builds/publishes a single 
+# project: UsersService.Api
+#
+# This will publish the API project to a folder named /publish and then copy the Dockerfile
+# to the root directory. This directory structure will match what the Dockerfile expects
+#
+# Example directory structure of artifacts:
+#
+#  /
+#    Dockerfile
+#    /publish
+#      ...
+#      ...
+#
+# Builds will be tagged with the pipeline start time in yyyyMMddHHmmss and branch name.
+#
 
 trigger:
 - main
 
-pool:
-  vmImage: ubuntu-latest
+pool: 'CMS Project' 
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+variables:
+  projectFolderName: 'UsersService'
+  projectName: 'UsersService.Api.csproj'
+  runDateTag: $[format('{0:yyyyMMddHHmmss}', pipeline.startTime)]
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+jobs: 
+- job: PublishServiceArtifacts
+  displayName: 'Publish Service Artifacts'
+  steps:
+
+    # ensure the build agent is using .NET 6
+    - task: UseDotNet@2
+      displayName: 'Use .NET 6 SDK'
+      inputs:
+        packageType: sdk
+        version: 6.x
+        installationPath: $(Agent.ToolsDirectory)/dotnet
+    
+    # restore the api project
+    - task: DotNetCoreCLI@2
+      displayName: 'Restore Service'
+      inputs:        
+        command: 'restore'
+        projects: '**/$(projectName)'
+        feedsToUse: 'select'
+    
+    # build the api project
+    - task: DotNetCoreCLI@2
+      displayName: 'Build Service'
+      inputs:
+        command: 'build'
+        projects: '**/$(projectName)'
+    
+    # publish the api project to the artifact directory
+    - task: DotNetCoreCLI@2
+      displayName: 'Publish Service'
+      inputs:
+        command: 'publish'
+        nobuild: true
+        publishWebProjects: false
+        projects: '**/$(projectName)'
+        arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)'
+        zipAfterPublish: false
+
+    # rename the publish folder
+    - task: PowerShell@2
+      displayName: Rename Publish folder
+      inputs:
+        targetType: 'inline'
+        script: |
+          Rename-Item -Path "$(Build.ArtifactStagingDirectory)/$(projectFolderName)" -NewName "publish"
+
+    # copy the docker file to the artifact directory
+    - task: CopyFiles@2
+      displayName: 'Copy Dockerfile'
+      inputs:
+        SourceFolder: '$(Build.SourcesDirectory)'
+        Contents: '**/$(projectFolderName)/Dockerfile'
+        TargetFolder: '$(Build.ArtifactStagingDirectory)'
+        flattenFolders: true
+
+    # add build tags
+    - task: PowerShell@2
+      displayName: Add Build Tags
+      inputs:
+        targetType: 'inline'
+        script: |
+          Write-Host "##vso[build.addbuildtag]$(runDateTag)"
+          Write-Host "##vso[build.addbuildtag]$(Build.SourceBranchName)"
+    
+    # publish the artifacts
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifacts'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
