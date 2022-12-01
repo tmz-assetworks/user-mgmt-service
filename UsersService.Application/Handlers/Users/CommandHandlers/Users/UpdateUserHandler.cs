@@ -9,7 +9,7 @@ using OperatorUserMapper = UsersService.Core.Entities.OperatorUserMapper;
 
 namespace UsersService.Application.Handlers.Users.CommandHandlers
 {
-    public class UpdateUserHandler : IRequestHandler<UpdateUserCommand, UserResponse>
+    public class UpdateUserHandler : IRequestHandler<UpdateUserCommand, UpdateUserResponse>
     {
         private readonly IUserRepository _UserRepo;
 
@@ -19,9 +19,9 @@ namespace UsersService.Application.Handlers.Users.CommandHandlers
         }
 
 
-        public async Task<UserResponse> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
+        public async Task<UpdateUserResponse> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
         {
-            UserResponse userResponse=new UserResponse();
+            UpdateUserResponse updateuserResponse =new UpdateUserResponse();
             var UserEntitiy = UsersMapper.Mapper.Map<UsersService.Core.Entities.Users>(request);
             if (UserEntitiy is null)
             {
@@ -57,7 +57,7 @@ namespace UsersService.Application.Handlers.Users.CommandHandlers
                         CreatedOn = DateTime.Now,
                         ModifiedOn = DateTime.Now,
                         ModifiedBy = request.ModifiedBy,
-                        UserName = "Tester",
+                        UserName = "NA",
                         UserId = request.Id,
                         IsActive = true,
                         LocationId = request.operatorUserMapperCommand[i],
@@ -67,11 +67,11 @@ namespace UsersService.Application.Handlers.Users.CommandHandlers
             UserEntitiy.OperatorUserMapper = OperatorUserMapper;
             UserEntitiy.UserRoles = userRoles;
 
-            var updateUser = await _UserRepo.UpdateUser(UserEntitiy);
+            updateuserResponse = await _UserRepo.UpdateUser(UserEntitiy);
             //var updateUser = _UserRepo.UpdateAsync(UserEntitiy, UserEntitiy.Id);
             //var mapUserResponse = UsersMapper.Mapper.Map<UserResponse>(updateUser.Result);
             //userResponse= updateUser
-            return userResponse;
+            return updateuserResponse;
         }
         
     }

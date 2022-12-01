@@ -11,6 +11,7 @@ namespace UsersService.Core.Response
         public int StatusCode { get; set; }
         public string StatusMessage { get; set; }
         public string useremail { get; set; }
+        public string objid { get; set; }
         public bool isActive { get; set; }
 
     }

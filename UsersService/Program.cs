@@ -9,35 +9,27 @@ namespace UsersService.Api
 {
     public class Program
     {
-        public static int Main(string[] args)
+        public static void Main(string[] args)
         {
-            //Log.Logger = new LoggerConfiguration()
-            //     //.Enrich.FromLogContext()
-            //     .WriteTo.Console(new RenderedCompactJsonFormatter())
-            //     .WriteTo.Debug(outputTemplate: DateTime.Now.ToString())
-            //     .WriteTo.File("Log//log.txt", rollingInterval: RollingInterval.Day)
-            //     //.WriteTo.Seq("http://localhost:5341/")
-            //     .CreateLogger();
-
+            var MyConfig = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
+            //string connectionString = MyConfig.GetValue<string>("LogsUrl:Url");
+            //string containerName = MyConfig.GetValue<string>("LogsUrl:containerName");
+            var containerName = Environment.GetEnvironmentVariable("ContainerName");
+            string connectionString = Environment.GetEnvironmentVariable("ConnectionStringLogs");
+            // string connectionString = "DefaultEndpointsProtocol=https;AccountName=assetswork;AccountKey=Rk7iyAEtGHdMWfojFlyE23dXYsMDUkH1zvLghSjWW9kZX7Ecv6wuJuvRifNQfOChKmY5d1Hvx7mE+AStxFztQw==;EndpointSuffix=core.windows.net";
             Log.Logger = new LoggerConfiguration()
-           .MinimumLevel.Debug()
-           .MinimumLevel.Override("Microsoft", LogEventLevel.Error)
-           .Enrich.FromLogContext()
-           .WriteTo.File("Log//log.txt", rollingInterval: RollingInterval.Day)
-           //.WriteTo.Seq("http://localhost:5341")
-           .CreateLogger();
-
-            //CreateHostBuilder(args).Build().Run();
+                 .WriteTo.Console().WriteTo.Debug(outputTemplate: DateTime.Now.ToString()).WriteTo.File("./logs/log-.txt", rollingInterval: RollingInterval.Day)
+                 .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", Serilog.Events.LogEventLevel.Warning)
+                 .WriteTo.AzureBlobStorage(connectionString, LogEventLevel.Information,
+                        containerName, "{yyyy}{MM}{dd}.txt", null, false, TimeSpan.FromMinutes(1), null, true).CreateLogger();
             try
             {
-                Log.Information("Starting host===========================================================");
+                Log.Information("Starting Portal-Service !");
                 CreateHostBuilder(args).Build().Run();
-                return 0;
             }
             catch (Exception ex)
             {
-                Log.Fatal(ex, "Host terminated unexpectedly");
-                return 1;
+                Log.Fatal(ex, "Host terminated unexpected !");
             }
             finally
             {

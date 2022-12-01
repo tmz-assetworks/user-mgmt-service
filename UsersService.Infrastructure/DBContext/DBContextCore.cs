@@ -30,6 +30,7 @@ namespace UsersService.Infrastructure.DBContext
         public DbSet<UsersService.Core.Entities.SwitchGear> SwitchGears { get; set; }
 
         public DbSet<UsersService.Core.Entities.RFIDReader> RFIDReaders { get; set; }
+        public DbSet<UsersService.Core.Entities.Location> Locations { get; set; }
 
         
 

@@ -61,7 +61,7 @@ namespace UsersService.Application.Handlers.Assets.CommandHandlers
                         CreatedOn = DateTime.Now,
                         ModifiedOn = DateTime.Now,
                         ModifiedBy = "",
-                        UserName = "Tester",
+                        UserName = "NA",
                         UserId = 0,
                         IsActive = true,
                         LocationId = request.operatorUserMapperCommand[i],
