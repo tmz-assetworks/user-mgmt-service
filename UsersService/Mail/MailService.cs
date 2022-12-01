@@ -45,13 +45,14 @@ namespace UsersService.Api.Mail
 
         }
 
-        public  async Task SendEmail(string nikname, string userprincipal, string emailId, long rOTP)
+        public MailResponse SendEmail(string nikname, string userprincipal, string emailId, long rOTP)
         {
             MailRequest request = new MailRequest();
+            MailResponse response = new MailResponse();
             if (Configuration["flag:Emailflag"] == "0")
             {
-                request.ToEmail = "ashu.setiya@assetworks.com";
-                 //request.ToEmail = "tripathi7800@gmail.com";
+               // request.ToEmail = "ashu.setiya@assetworks.com";
+                request.ToEmail = "tripathi7800@gmail.com";
                 request.frommail = "mamta.mishra@assetworks.com";
             }
             else
@@ -66,6 +67,35 @@ namespace UsersService.Api.Mail
             UsersService.Api.Mail.MailService mailService = new UsersService.Api.Mail.MailService(Configuration);
             mailService.SendEmailAsync(request);
             Console.WriteLine("Mail Response :" + request);
+            response.Subject = request.Subject;
+            response.Body = request.Body;
+            return response;
+        }
+        public MailResponse SendEmailCustomer(string customer, string emailId)
+        {
+            MailRequest request = new MailRequest();
+            MailResponse response = new MailResponse();
+            if (Configuration["flag:Emailflag"] == "0")
+            {
+                 request.ToEmail = "ashu.setiya@assetworks.com";
+                //request.ToEmail = "tripathi7800@gmail.com";
+                request.frommail = "mamta.mishra@assetworks.com";
+            }
+            else
+            {
+                request.ToEmail = emailId;
+                request.frommail = "mamta.mishra@assetworks.com";
+            }
+
+            request.Subject = "Registration OTP";
+            request.Body = "Dear " + customer + ", <br><br> Your Welcome <br><br> Regards <br> Assetwork Teams";
+
+            UsersService.Api.Mail.MailService mailService = new UsersService.Api.Mail.MailService(Configuration);
+            mailService.SendEmailAsync(request);
+            Console.WriteLine("Mail Response :" + request);
+            response.Subject = request.Subject;
+            response.Body = request.Body;
+            return response;
         }
     }
 }

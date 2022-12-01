@@ -67,10 +67,9 @@ namespace UsersService.Api.Controllers.Tests
                   },
 
                  },
-                operatorUserMapperCommand = new List<long>()
-                 { 1 },
-
-                
+                operatorUserMapperCommand = new List<long>(){
+                 1
+                }
 
             };
 
@@ -118,10 +117,8 @@ namespace UsersService.Api.Controllers.Tests
                 operatorUserMapperCommand = new List<long>(){
                  1
                   }
-
-              
             };
-            UserResponse userResponse = new UserResponse()
+            UpdateUserResponse userResponse = new UpdateUserResponse()
             {
                 StatusCode = 200,
                 StatusMessage = "Success",

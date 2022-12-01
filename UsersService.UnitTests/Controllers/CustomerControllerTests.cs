@@ -26,6 +26,7 @@ namespace UsersService.Api.Controllers.Tests
         private readonly CustomerController _customerController;
         private readonly Mock<IConfiguration> _configuration;
         private readonly Mock<ILogger<CustomerController>> _logger;
+        private readonly IConfiguration _baseconfiguration;
         private readonly TokenBase _tokenBase;
         private readonly Mock<IMediator> _mediator;
 
@@ -35,7 +36,7 @@ namespace UsersService.Api.Controllers.Tests
 
             _configuration = new Mock<IConfiguration>();
             _logger = new Mock<ILogger<CustomerController>>();
-            _customerController = new CustomerController(_mediator.Object, _logger.Object, _tokenBase);
+            _customerController = new CustomerController(_mediator.Object, _logger.Object, _tokenBase,_baseconfiguration);
         }
         #region Create Customer Test cases
         [TestMethod()]

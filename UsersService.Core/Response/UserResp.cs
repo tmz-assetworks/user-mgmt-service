@@ -61,6 +61,8 @@ namespace UsersService.Core.Response
         public string customername { get; set; }
         public bool IsActive { get; set; }
         public List<long> locationsId { get; set; }
+        public string locationsName { get; set; }
+        public int locationsNameCount { get; set; }
     }
 
     public class CustomerDDL
@@ -91,7 +93,7 @@ namespace UsersService.Core.Response
         public int? customerID { get; set; }
         public List<long>? roleid { get; set; }
     }
-   
+
     public class userrolesresponse
     {
         public int StatusCode { get; set; }
@@ -128,16 +130,33 @@ namespace UsersService.Core.Response
         public long? CountryID { get; set; }
         public long? StateID { get; set; }
         //public long? CityID { get; set; }
-       
+
         public string countryName { get; set; }
         public string ImagePath { get; set; }
         public string stateName { get; set; }
         public string cityName { get; set; }
         public string zipcode { get; set; }
     }
-    public partial class UpdateUserProfilePicture 
+    public partial class UpdateUserProfilePicture
     {
 
         public string ProfilePicture { get; set; }
+    }
+    public partial class TaskNotificationRequest
+    {
+        public string category { get; set; }
+        public string messagetype { get; set; }
+        public string content { get; set; }
+        public string ipaddress { get; set; }
+        public string userId { get; set; }
+    }
+
+    public partial class UpdateUserResponse
+    {
+
+        public int StatusCode { get; set; }
+        public string StatusMessage { get; set; }
+        public long Id { get; set; }
+        public string OTP { get; set; }
     }
 }

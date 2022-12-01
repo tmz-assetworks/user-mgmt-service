@@ -14,7 +14,7 @@ namespace UsersService.Core.Repositories.Users
         Task<GetUserResponseDT> GetByIdUser(long id);
         Task<UsersService.Core.Entities.Users> GetByObjectIdUser(string objectid);
         Task<UsersService.Core.Entities.Users> GetUserPrincipalNameUser(string userPrincipalName);
-        Task<UsersService.Core.Entities.Users> UpdateUser(UsersService.Core.Entities.Users users);
+        Task<UpdateUserResponse> UpdateUser(UsersService.Core.Entities.Users users);
         Task<otpdata> Updateotp(string Emailid, string Otp);
         Task<otpdata> Getotp(string userid,string Otp);
         Task<GetUserobjectbyidDT> GetUserbyobjectId(string userid);

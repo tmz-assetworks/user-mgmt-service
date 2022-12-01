@@ -68,7 +68,7 @@ namespace UsersService.Infrastructure.EnumData
             InActive = 0,
             [Display(Name = "Active")]
             Active = 1,
-            [Display(Name = "Total Customers")]
+            [Display(Name = "Total Organizations")]
             TotalCustomer = 2,
             [Display(Name = "Total Admin Users")]
             TotalUser = 3,

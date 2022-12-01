@@ -2,6 +2,7 @@ using Azure;
 using Azure.Core;
 using Azure.Identity;
 using MediatR;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Formatters;
@@ -12,7 +13,9 @@ using Microsoft.Graph.ExternalConnectors;
 using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -37,6 +40,7 @@ using UsersService.Application.Commands.Users;
 using UsersService.Application.Queries;
 using UsersService.Core.Entities;
 using UsersService.Core.Response;
+using UsersService.Infrastructure.Helpers;
 using UsersService.Responses.Users;
 using VerifyAssetWorksAzureAD.Model;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
@@ -79,7 +83,6 @@ namespace UsersService.Api.Controllers
         }
         public AuthController(IConfiguration configuration, IMediator mediator)
         {
-           
             _baseconfiguration = configuration;
             _configuration=configuration;
             _mediator = mediator;
@@ -116,7 +119,7 @@ namespace UsersService.Api.Controllers
             try
             {
                 HttpClient httpClient = new HttpClient();
-            StringContent stringContent = new StringContent(JsonSerializer.Serialize<String>(""), Encoding.UTF8, "application/json");
+            StringContent stringContent = new StringContent(System.Text.Json.JsonSerializer.Serialize<String>(""), Encoding.UTF8, "application/json");
             httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAdminAccessToken()));
             HttpResponseMessage httpResponseMessage = await httpClient.PostAsync(string.Concat("https://graph.microsoft.com/v1.0/users/", emailid + "/revokeSignInSessions"), stringContent);
 
@@ -179,7 +182,7 @@ namespace UsersService.Api.Controllers
 
                     userN.passwordProfile = passwordProfile;
                     HttpClient httpClient = new HttpClient();
-                    StringContent stringContent = new StringContent(JsonSerializer.Serialize<UserNModel>(userN), Encoding.UTF8, "application/json");
+                    StringContent stringContent = new StringContent(System.Text.Json.JsonSerializer.Serialize<UserNModel>(userN), Encoding.UTF8, "application/json");
                     httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAdminAccessToken()));
                     HttpResponseMessage httpResponseMessage = await httpClient.PatchAsync(string.Concat("https://graph.microsoft.com/v1.0/users/", objemail), stringContent);
 
@@ -204,8 +207,8 @@ namespace UsersService.Api.Controllers
                 }
                 catch (Exception ex)
                 {
-
-                    str = @"{""StatusCode"":""400"",""Message"":""Bad Request"",""Data"":""" + ex.Message + @"""}";
+                Log.Information("error occurred :" + ex.Message);
+                str = @"{""StatusCode"":""400"",""Message"":""Bad Request"",""Data"":""" + ex.Message + @"""}";
                     return BadRequest(str);
                 }
         }
@@ -261,6 +264,7 @@ namespace UsersService.Api.Controllers
             }
             catch (Exception ex)
             {
+                Log.Information("error occurred :" + ex.Message);
                 OtpResponse.StatusCode = 400;
                 OtpResponse.Message = "Bad Request";
                 return BadRequest(OtpResponse);
@@ -271,6 +275,9 @@ namespace UsersService.Api.Controllers
         [Route("VerifyUser")]
         public async Task<IActionResult> VerifyUser(string emailid)
         {
+
+            string callingMethod = APIConstant.CreateNotificationWithoutToken;
+            TaskNotificationRequest taskNotificationRequest = new TaskNotificationRequest();
             var userprincipal = await Username(emailid);
             string responce = string.Empty;
             string rotp = Extensions.Getrandomnumber().ToString();
@@ -305,8 +312,15 @@ namespace UsersService.Api.Controllers
                     // StringContent stringContent = new StringContent(JsonSerializer.Serialize<UserNModel>(userN), Encoding.UTF8, "application/json");
                     httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAccessToken()));
                     HttpResponseMessage httpResponseMessage = await httpClient.GetAsync(string.Concat("https://graph.microsoft.com/v1.0/users/", userprincipal.useremail));
-                
-                    Microsoft.AspNetCore.Mvc.Formatters.MediaTypeCollection myContentTypes = new Microsoft.AspNetCore.Mvc.Formatters.MediaTypeCollection { System.Net.Mime.MediaTypeNames.Application.Json };
+                //------insert notification-------------
+                taskNotificationRequest.category = "Email";
+                taskNotificationRequest.messagetype = request.Subject;
+                taskNotificationRequest.content = request.Body;
+                taskNotificationRequest.ipaddress = "192.186.178.07";
+                taskNotificationRequest.userId = userprincipal.objid;
+                StringContent httpContent = new StringContent(JsonConvert.SerializeObject(taskNotificationRequest), Encoding.UTF8, "application/json");
+                HttpResponseMessage response = await Helper.GetCallAssetWithBody1APIAsync(callingMethod, httpContent);
+                Microsoft.AspNetCore.Mvc.Formatters.MediaTypeCollection myContentTypes = new Microsoft.AspNetCore.Mvc.Formatters.MediaTypeCollection { System.Net.Mime.MediaTypeNames.Application.Json };
                     responce = await httpResponseMessage.Content.ReadAsStringAsync();
                     if (httpResponseMessage.IsSuccessStatusCode)
                     {
@@ -325,7 +339,7 @@ namespace UsersService.Api.Controllers
             
             catch (Exception ex)
             {
-
+                Log.Information("error occurred :" + ex.Message);
                 responce = @"{""StatusCode"":""400"",""Message"":""" + "Bad Request ," + ex.Message.ToString() + @"""}";
                 return BadRequest(responce);
             }
@@ -425,6 +439,7 @@ namespace UsersService.Api.Controllers
                 }
                 else
                 {
+                   
                     responce = @"{""StatusCode"":""" + 400 + @""",""Message"":""" + "User InActive" + @""",""data"":" + responce + "}";
 
                     return BadRequest(responce);
@@ -433,7 +448,7 @@ namespace UsersService.Api.Controllers
             }
             catch (Exception ex)
             {
-
+                Log.Information("error occurred :" + ex.Message);
                 responce = @"{""StatusCode"":""400"",""Message"":""" + "Bad Request" + @""",""data"": [{""token"":""" + null + @"""}]}";
                 return BadRequest(responce);
             }
@@ -512,7 +527,7 @@ namespace UsersService.Api.Controllers
             }
             catch (Exception ex)
             {
-
+                Log.Information("error occurred :" + ex.Message);
                 responce = @"{""StatusCode"":""400"",""Message"":""" + "Bad Request" + @""",""data"": [{""token"":""" + null + @"""}]}";
                 return BadRequest(responce);
             }
@@ -536,6 +551,7 @@ namespace UsersService.Api.Controllers
             }
             catch (Exception exception)
             {
+                Log.Information("error occurred :" + exception.Message);
                 authenticationContext = new AuthenticationContext(context);
                 accessToken = this.GetAccessToken();
             }
@@ -638,6 +654,7 @@ namespace UsersService.Api.Controllers
 
             catch (Exception ex)
             {
+                Log.Information("error occurred :" + ex.Message);
                 JSONString = "{\n  \"data\" : " + null + ",  \"StatusMessage\" : " + ex.Message.ToString() + ",\n  \"StatusCode\" : " + (int)HttpStatusCode.NotFound + " \n}";
                // _logger.LogError(ex.ToString());
             }

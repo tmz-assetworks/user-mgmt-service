@@ -1,12 +1,13 @@
 ﻿
 using MediatR;
 using Microsoft.AspNetCore.Http;
+using UsersService.Core.Response;
 using UsersService.Responses.Users;
 
 namespace UsersService.Application.Commands.Users
 {
    
-    public class UpdateUserCommand : IRequest<UserResponse>   
+    public class UpdateUserCommand : IRequest<UpdateUserResponse>   
     {
         public long Id { get; set; }
         public string name { get; set; }
@@ -37,7 +38,7 @@ namespace UsersService.Application.Commands.Users
     public class UpdateUserProfileCommand : IRequest<UserProfileResponse>
     {
         public long Id { get; set; }
-        public long PhoneNumber { get; set; }
+        public string PhoneNumber { get; set; }
         public string AddressLine1 { get; set; }
         public string AddressLine2 { get; set; }
         public long CountryID { get; set; }
