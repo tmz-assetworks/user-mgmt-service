@@ -79,6 +79,8 @@ namespace UsersService.Api.Controllers
                     {"BaseUrl:fronendurl", Environment.GetEnvironmentVariable("BaseUrl_fronted")},
                     {"AzureAd:ConnectionStringLogs", Environment.GetEnvironmentVariable("ConnectionStringLogs")},
                     {"AzureAd:ImageContainerName", Environment.GetEnvironmentVariable("ImageContainerName")},
+                    {"AzureAd:helpdeskUserName", Environment.GetEnvironmentVariable("helpdeskUserName")},
+                    {"AzureAd:helpdeskPassword", Environment.GetEnvironmentVariable("helpdeskPassword")},
                 };
             _baseconfiguration = new ConfigurationBuilder().AddInMemoryCollection(myConfiguration).Build();
         }
@@ -87,7 +89,7 @@ namespace UsersService.Api.Controllers
         public string GetAccessToken()
         {
             string accessToken;
-            string context = "https://login.microsoftonline.com/744aa8b0-bb99-4982-903f-52328216b4be";
+            string context = "https://login.microsoftonline.com/" + this._baseconfiguration["AzureAd:TenantId"];
             string resource = "https://graph.microsoft.com";
             string clientId = _baseconfiguration["AzureAd:clientId"];
 
@@ -625,8 +627,8 @@ namespace UsersService.Api.Controllers
             list.Add(new KeyValuePair<string, string>("client_id", item));
             list.Add(new KeyValuePair<string, string>("client_secret", item1));
             list.Add(new KeyValuePair<string, string>("grant_type", "password"));
-            list.Add(new KeyValuePair<string, string>("username", "superadmin@devopstekmindz.onmicrosoft.com"));
-            list.Add(new KeyValuePair<string, string>("password", "Vpm@2820"));
+            list.Add(new KeyValuePair<string, string>("username", this._baseconfiguration["AzureAd:helpdeskUserName"]));
+            list.Add(new KeyValuePair<string, string>("password", this._baseconfiguration["AzureAd:helpdeskPassword"]));
             //list.Add(new KeyValuePair<string, string>("scope", "profile openid email User.Read"));
             list.Add(new KeyValuePair<string, string>("scope", item + "/.default"));
             List<KeyValuePair<string, string>> list1 = list;
