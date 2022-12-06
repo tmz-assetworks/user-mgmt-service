@@ -56,6 +56,8 @@ namespace UsersService.Api.Controllers
                     {"AzureAd:operatorRoleId", Environment.GetEnvironmentVariable("AZUREAD_OPERATORRID")},
                     {"AzureAd:adminRoleId", Environment.GetEnvironmentVariable("AZUREAD_ADMINRID")},
                     {"BaseUrl:fronendurl", Environment.GetEnvironmentVariable("BaseUrl_fronted")},
+                    {"AzureAd:helpdeskUserName", Environment.GetEnvironmentVariable("helpdeskUserName")},
+                    {"AzureAd:helpdeskPassword", Environment.GetEnvironmentVariable("helpdeskPassword")},
                 };
              _baseconfiguration = new ConfigurationBuilder().AddInMemoryCollection(myConfiguration).Build();
         }
