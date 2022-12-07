@@ -81,6 +81,8 @@ namespace UsersService.Api.Controllers
                     {"AzureAd:ImageContainerName", Environment.GetEnvironmentVariable("ImageContainerName")},
                     {"AzureAd:helpdeskUserName", Environment.GetEnvironmentVariable("helpdeskUserName")},
                     {"AzureAd:helpdeskPassword", Environment.GetEnvironmentVariable("helpdeskPassword")},
+                    {"AzureAd:Domain", Environment.GetEnvironmentVariable("AZUREAD_DOMAIN")},
+                    
                 };
             _baseconfiguration = new ConfigurationBuilder().AddInMemoryCollection(myConfiguration).Build();
         }
@@ -218,8 +220,8 @@ namespace UsersService.Api.Controllers
             if (!string.IsNullOrEmpty(command.name))
             {
                 if (command.name.Contains(' '))
-                    userprincipal = command.name.ToString().Split(' ')[0].Trim() + "@devopstekmindz.onmicrosoft.com";
-                else userprincipal = command.name + "@devopstekmindz.onmicrosoft.com";
+                    userprincipal = command.name.ToString().Split(' ')[0].Trim()  + "@"+ this._baseconfiguration["AzureAd:Domain"];
+                else userprincipal = command.name + "@"+ this._baseconfiguration["AzureAd:Domain"];
             }
 
 
