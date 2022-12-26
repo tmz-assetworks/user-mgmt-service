@@ -1,11 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UsersService.Core.Entities;
-using UsersService.Core.PagingHelper;
+﻿using UsersService.Core.PagingHelper;
 
 namespace UsersService.Core.Response
 {
@@ -32,30 +25,19 @@ namespace UsersService.Core.Response
     {
         public long Id { get; set; }
         public string EmailId { get; set; }
-        //public string UserPrincipalName { get; set; }
         public string adminName { get; set; }
-
         public string PhoneNumber { get; set; }
-
         public string addressLine1 { get; set; }
-
         public string addressLine2 { get; set; }
-
         public long? CountryID { get; set; }
         public long? StateID { get; set; }
-        //public long? CityID { get; set; }
         public string countryName { get; set; }
         public string stateName { get; set; }
         public string cityName { get; set; }
-
         public string createdBy { get; set; }
         public string zipcode { get; set; }
         public DateTime CreatedOn { get; set; }
-
-
         public string modifiedBy { get; set; }
-
-
         public DateTime modifiedOn { get; set; }
         public long? customerID { get; set; }
         public string customername { get; set; }
@@ -93,14 +75,12 @@ namespace UsersService.Core.Response
         public int? customerID { get; set; }
         public List<long>? roleid { get; set; }
     }
-
     public class userrolesresponse
     {
         public int StatusCode { get; set; }
         public string StatusMessage { get; set; }
         public List<userrolesDDL> data { get; set; }
     }
-
     public class userrolesDDL
     {
         public long Id { get; set; }
@@ -112,7 +92,6 @@ namespace UsersService.Core.Response
         public string obectId { get; set; }
         public string otp { get; set; }
     }
-
     public class GetUserProfileResponseDT
     {
         public int StatusCode { get; set; }
@@ -129,8 +108,7 @@ namespace UsersService.Core.Response
         public string addressLine2 { get; set; }
         public long? CountryID { get; set; }
         public long? StateID { get; set; }
-        //public long? CityID { get; set; }
-
+        public bool NotificationEnable { get; set; }
         public string countryName { get; set; }
         public string ImagePath { get; set; }
         public string stateName { get; set; }
@@ -139,7 +117,6 @@ namespace UsersService.Core.Response
     }
     public partial class UpdateUserProfilePicture
     {
-
         public string ProfilePicture { get; set; }
     }
     public partial class TaskNotificationRequest
@@ -150,10 +127,8 @@ namespace UsersService.Core.Response
         public string ipaddress { get; set; }
         public string userId { get; set; }
     }
-
     public partial class UpdateUserResponse
     {
-
         public int StatusCode { get; set; }
         public string StatusMessage { get; set; }
         public long Id { get; set; }

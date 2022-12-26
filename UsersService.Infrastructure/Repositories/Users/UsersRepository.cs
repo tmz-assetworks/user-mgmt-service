@@ -1,14 +1,11 @@
-﻿
 using Microsoft.EntityFrameworkCore;
 using System.Net;
-using System.Security.Cryptography.X509Certificates;
 using UsersService.Core.Entities;
 using UsersService.Core.PagingHelper;
 using UsersService.Core.Repositories.Users;
 using UsersService.Core.Response;
 using UsersService.Infrastructure.Helpers;
 using UsersService.Infrastructure.Repositories.Repository;
-using static System.Net.WebRequestMethods;
 
 namespace UsersService.Infrastructure.Repositories.Assets
 {
@@ -19,14 +16,11 @@ namespace UsersService.Infrastructure.Repositories.Assets
         {
             _tokenbase = tokenBase;
         }
-
-
         public async Task<IEnumerable<Users>> GetUserByEmailIdPassword(string emaildId, string password)
         {
             return await _dbContext.Users
                 .Where(m => m.EmailId == emaildId)
                 .ToListAsync();
-
         }
         public async Task<GetUserResponseDT> GetByIdUser(long userid)
         {
@@ -36,7 +30,6 @@ namespace UsersService.Infrastructure.Repositories.Assets
                           on m.CountryID equals country.Id
                           join state in _dbContext.State
                           on m.StateID equals state.Id
-
                           join c in _dbContext.Customers
                           on m.CustomerID equals c.Id
                           select new GetUserResponse
@@ -148,7 +141,7 @@ namespace UsersService.Infrastructure.Repositories.Assets
                           })
                                     .ToList();
             }
-            result = result != null ? result.OrderByDescending(x => x.modifiedOn).ToList() : result;
+            result = result != null ? result.OrderByDescending(x => x.modifiedOn).DistinctBy(p => new { p.Id }).ToList() : result.DistinctBy(p => new { p.Id }).ToList();
             allUserResponse.InActive = result.Where(m => m.IsActive == false).Count();
             allUserResponse.Active = result.Where(m => m.IsActive == true).Count();
             if (!string.IsNullOrEmpty(getUserRequest.SearchParam))
@@ -174,7 +167,6 @@ namespace UsersService.Infrastructure.Repositories.Assets
         public async Task<List<CustomerData>> GetCustomerDDL()
         {
             List<CustomerData> res = new List<CustomerData>();
-
             res = (from v in _dbContext.Customers
                    select new CustomerData
                    {
@@ -188,14 +180,12 @@ namespace UsersService.Infrastructure.Repositories.Assets
         public async Task<List<userrolesDDL>> GetUserDDL()
         {
             List<userrolesDDL> res = new List<userrolesDDL>();
-
             res = (from v in _dbContext.UserRoles
                    select new userrolesDDL
                    {
                        Id = v.id,
                        RoleID = v.RoleID,
                    }).ToList();
-
             return res;
         }
 
@@ -206,18 +196,13 @@ namespace UsersService.Infrastructure.Repositories.Assets
             {
                 string IsExist = "";
                 Users ousers = _dbContext.Users.Find(users.Id);
-                List<Users> list = _dbContext.Users.ToList<Users>();
-                foreach (Users u in list)
+                List<Users> list = _dbContext.Users.Where(u=>u.Id!=users.Id && u.EmailId==users.EmailId).ToList<Users>();
+                if (list.Count>0)
                 {
-                    if (users.EmailId == u.EmailId && u.Id != users.Id)
-                    {
                         IsExist = " email already exist";
-
-                    }
                 }
                 if (string.IsNullOrEmpty(IsExist))
                 {
-                    //Users ousers = _dbContext.Users.FirstOrDefault(m => m.Id == users.Id && m.EmailId != users.EmailId);//_dbContext.Users.Find(users.Id);
                     ousers.name = users.name;
                     ousers.EmailId = users.EmailId;
                     ousers.PhoneNumber = users.PhoneNumber;
@@ -250,7 +235,6 @@ namespace UsersService.Infrastructure.Repositories.Assets
                     }
                     for (int i = 0; i < users.OperatorUserMapper.Count(); i++)
                     {
-                        //OperatorUserMapper oldOperatorUser = _dbContext.OperatorUserMapper.Find(users.OperatorUserMapper.ToList()[i].Id);
                         OperatorUserMapper oldOperatorUser = new OperatorUserMapper();
                         OperatorUserMapper newoperators = users.OperatorUserMapper.ToList()[i];
                         oldOperatorUser.UserId = users.Id;
@@ -260,10 +244,8 @@ namespace UsersService.Infrastructure.Repositories.Assets
                         oldOperatorUser.ModifiedOn = DateTime.Now;
                         oldOperatorUser.CreatedBy = newoperators.ModifiedBy;
                         oldOperatorUser.CreatedOn = DateTime.Now;
-                        oldOperatorUser.UserName = "NA";
                         oldOperatorUser.IsActive = true;
                         _dbContext.Set<OperatorUserMapper>().Add(oldOperatorUser);
-
                 }
                 _dbContext.Update(ousers);
                 _dbContext.SaveChanges();
@@ -298,7 +280,6 @@ namespace UsersService.Infrastructure.Repositories.Assets
                 updateuserResponse.Id = users.Id;
             }
             return updateuserResponse;
-
         }
         public async Task<otpdata> Getotp(string emailid, string Otp)
         {
@@ -310,9 +291,7 @@ namespace UsersService.Infrastructure.Repositories.Assets
                               obectId = m.ObjectId,
                               otp = m.Otp,
                           }).Where(x => x.email == emailid && x.otp == Otp).FirstOrDefault();
-
             getotpdata = result;
-
             return getotpdata;
         }
 
@@ -322,20 +301,17 @@ namespace UsersService.Infrastructure.Repositories.Assets
             otpdata otpdata = new otpdata();
             try
             {
-
                 Users = _dbContext.Users.FirstOrDefault(m => m.UserPrincipalName.ToLower() == EmailId.ToLower());
                 Users.Otp = otp;
                 Users.OtpDateTime = DateTime.Now;
                 _dbContext.Update(Users);
                 _dbContext.SaveChanges();
-
             }
             catch (Exception ex)
             {
             }
             otpdata.otp = Users.Otp;
             return otpdata;
-
         }
         public async Task<GetUserobjectbyidDT> GetUserbyobjectId(string userid)
         {
@@ -377,8 +353,8 @@ namespace UsersService.Infrastructure.Repositories.Assets
                               useremail = m.UserPrincipalName,
                               isActive = m.IsActive,
                               objid = m.ObjectId,
+                              name=m.name,
                           }).FirstOrDefault();
-
             if (result != null)
             {
                 getEmailResponse.StatusCode = (int)HttpStatusCode.OK;
@@ -386,6 +362,7 @@ namespace UsersService.Infrastructure.Repositories.Assets
                 getEmailResponse.useremail = result.useremail;
                 getEmailResponse.isActive = result.isActive;
                 getEmailResponse.objid = result.objid;
+                getEmailResponse.name = result.name;
             }
             else
             {
@@ -394,6 +371,7 @@ namespace UsersService.Infrastructure.Repositories.Assets
                 getEmailResponse.isActive = false;
                 getEmailResponse.useremail = null;
                 getEmailResponse.objid = null;
+                getEmailResponse.name = null;
             }
             return getEmailResponse;
         }
@@ -422,6 +400,7 @@ namespace UsersService.Infrastructure.Repositories.Assets
                               stateName = state.stateName,
                               zipcode = m.ZipCode,
                               ImagePath = m.ImagePath,
+                              NotificationEnable = m.NotificationEnable,
                           }).FirstOrDefault();
 
             if (result != null)
@@ -441,10 +420,8 @@ namespace UsersService.Infrastructure.Repositories.Assets
 
         public async Task<Users> UpdateUserProfile(Users users)
         {
-
             try
             {
-
                 Users ousers = _dbContext.Users.Find(users.Id);
                 ousers.PhoneNumber = users.PhoneNumber;
                 ousers.AddressLine1 = users.AddressLine1;
@@ -455,34 +432,30 @@ namespace UsersService.Infrastructure.Repositories.Assets
                 ousers.ZipCode = users.ZipCode;
                 ousers.ModifiedBy = users.ModifiedBy;
                 ousers.ModifiedOn = DateTime.Now;
+                ousers.NotificationEnable = users.NotificationEnable;
                 _dbContext.Update(ousers);
                 _dbContext.SaveChanges();
-
             }
             catch (Exception ex)
             {
 
             }
             return (users);
-
         }
         public async Task<Users> UpdateUserPicture(Users users)
         {
-
             try
             {
                 Users ousers = _dbContext.Users.FirstOrDefault(m => m.ObjectId == _tokenbase.getobjectid());
                 ousers.ImagePath = users.ImagePath;
                 _dbContext.Update(ousers);
                 _dbContext.SaveChanges();
-
             }
             catch (Exception ex)
             {
 
             }
             return (users);
-
         }
     }
 }

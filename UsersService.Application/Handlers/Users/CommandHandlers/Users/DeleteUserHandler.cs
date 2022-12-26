@@ -1,17 +1,14 @@
 ﻿using UsersService.Core.Mapper;
 using MediatR;
 using UsersService.Application.Commands.Users;
-using UsersService.Core.Entities;
 using UsersService.Core.Repositories.Users;
 using UsersService.Responses.Users;
 
 namespace UsersService.Application.Handlers.Users.CommandHandlers.Users
 {
     public class DeleteUserHandler : IRequestHandler<DeleteUserCommand, UserResponse>
-    {
-    
+    {    
         private readonly IUserRepository _UserRepo;
-
         public DeleteUserHandler(IUserRepository UserRepository)
         {
             _UserRepo = UserRepository;

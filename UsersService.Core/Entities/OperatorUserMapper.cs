@@ -19,8 +19,8 @@ namespace UsersService.Core.Entities
 
         [DataMember(Name = "locationId", EmitDefaultValue = false)]
         public long LocationId { get; set; }
-        [DataMember(Name = "UserName", EmitDefaultValue = false)]
-        public string? UserName { get; set; }
+        //[DataMember(Name = "UserName", EmitDefaultValue = false)]
+        //public string? UserName { get; set; }
 
         [DataMember(Name = "UserId", EmitDefaultValue = false)]
         public long UserId { get; set; }

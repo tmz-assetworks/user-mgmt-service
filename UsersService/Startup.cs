@@ -43,7 +43,7 @@ namespace UsersService.Api
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-             Dictionary<string, string> myConfiguration = new Dictionary<string, string>
+            Dictionary<string, string> myConfiguration = new Dictionary<string, string>
                 {
                     {"AzureAd:Instance",Environment.GetEnvironmentVariable("AZUREAD_INSTANCE")},
                     {"AzureAd:Domain",Environment.GetEnvironmentVariable("AZUREAD_DOMAIN")},
@@ -52,18 +52,27 @@ namespace UsersService.Api
                     {"AzureAd:audience",Environment.GetEnvironmentVariable("AZUREAD_AUD")},
                 };
             IConfiguration configurationENV = new ConfigurationBuilder().AddInMemoryCollection(myConfiguration).Build();
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-             .AddMicrosoftIdentityWebApi(configurationENV.GetSection("AzureAd"));
-            //.AddMicrosoftIdentityWebApi(Configuration.GetSection("AzureAd1"));
+
             var dbHost = Environment.GetEnvironmentVariable("DB_HOST");
             var dbName = Environment.GetEnvironmentVariable("DB_NAME");
-            var dbPassword = Environment.GetEnvironmentVariable("DB_SA_PASSWORD");
+            var dbPassword = Environment.GetEnvironmentVariable("DB_USER_PASSWORD");
             var dbUserName = Environment.GetEnvironmentVariable("DB_LOGIN_USERNAME");
             var connectionString = $"Data Source={dbHost};Initial Catalog={dbName};User ID={dbUserName};Password={dbPassword}";
-            services.AddDbContext<UsersService.Infrastructure.DBContext.DBContextCore>(
-
-            //m => m.UseSqlServer(Configuration.GetConnectionString("UserDB")), ServiceLifetime.Transient);
-            m => m.UseSqlServer(connectionString), ServiceLifetime.Transient);
+            if (dbHost == null)
+            {
+                connectionString = Configuration.GetConnectionString("AssetsDB");
+                services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddMicrosoftIdentityWebApi(Configuration.GetSection("AzureAd1"));
+                Environment.SetEnvironmentVariable("NOTIFICATIONAPI", Configuration["BaseUrl:NOTIFICATIONAPI"].ToString());
+                services.AddControllers();
+            }
+            else
+            {
+                services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddMicrosoftIdentityWebApi(configurationENV.GetSection("AzureAd"));
+                services.AddControllers();
+            }
+            services.AddDbContext<UsersService.Infrastructure.DBContext.DBContextCore>(m => m.UseSqlServer(connectionString), ServiceLifetime.Transient);
             services.AddAutoMapper(typeof(Startup));
             services.AddTransient<ICustomerRepository, CustomerRepository>();
             services.AddMediatR(typeof(GetByIdCustomersHandler).GetTypeInfo().Assembly);

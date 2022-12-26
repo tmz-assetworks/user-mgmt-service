@@ -17,13 +17,10 @@ namespace UsersService.Application.Handlers.Users.CommandHandlers.Users
     public class UpdateUserProfileHandler : IRequestHandler<UpdateUserProfileCommand, UserProfileResponse>
     {
         private readonly IUserRepository _UserRepo;
-
         public UpdateUserProfileHandler(IUserRepository UserRepository)
         {
             _UserRepo = UserRepository;
         }
-
-
         public async Task<UserProfileResponse> Handle(UpdateUserProfileCommand request, CancellationToken cancellationToken)
         {
             UserProfileResponse userResponse = new UserProfileResponse();

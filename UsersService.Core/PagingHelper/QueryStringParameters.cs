@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿
 namespace UsersService.Core.PagingHelper
 {
     public abstract class QueryStringParameters
@@ -23,7 +18,5 @@ namespace UsersService.Core.PagingHelper
                 _pageSize = (value > maxPageSize) ? maxPageSize : value;
             }
         }
-
-        //public string OrderBy { get; set; }
     }
 }

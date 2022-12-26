@@ -1,5 +1,4 @@
-﻿using UsersService.Core.Entities;
-using UsersService.Core.Repositories.Base;
+﻿using UsersService.Core.Repositories.Base;
 using UsersService.Core.Response;
 
 namespace UsersService.Core.Repositories.Users

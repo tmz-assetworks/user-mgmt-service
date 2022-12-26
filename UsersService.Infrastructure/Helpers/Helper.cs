@@ -1,26 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Net.Http.Headers;
 
 namespace UsersService.Infrastructure.Helpers
 {
     public interface IHttpHelper
     {
         Task<HttpResponseMessage> GetCallAssetAPIAsync(string apiUrl, string token);
-        // Task<HttpResponseMessage> GetCallAssetWithBodyAPIAsync(string apiUrl, string contentBody);
         Task<HttpResponseMessage> GetCallMockAPIAsync(string apiUrl);
     }
     public class HttpHelper : IHttpHelper
     {
-
         public async Task<HttpResponseMessage> GetCallAssetAPIAsync(string apiUrl, string token)
         {
             return await Helper.GetCallAssetAuthAPIAsync(apiUrl, token);
         }
-
         public async Task<HttpResponseMessage> GetCallMockAPIAsync(string apiUrl)
         {
             return await Helper.GetCallMockAPIAsync(apiUrl);
@@ -28,9 +20,7 @@ namespace UsersService.Infrastructure.Helpers
     }
     public static class Helper
     {
-        //private static readonly string AssetBaseAssetAPIAddress = "https://localhost:7200/api/";
-        //private static readonly string AssetBaseAssetAPIAddress = "https://notification-appservices.azurewebsites.net/api/v1/";
-        private static readonly string AssetBaseAssetAPIAddress = Environment.GetEnvironmentVariable("NotificationAPI");
+        private static readonly string AssetBaseAssetAPIAddress = Environment.GetEnvironmentVariable("NOTIFICATIONAPI");
         public static async Task<HttpResponseMessage> GetCallAssetAuthAPIAsync(string apiUrl, string token)
         {
 
@@ -80,7 +70,6 @@ namespace UsersService.Infrastructure.Helpers
             {
                 client.BaseAddress = new Uri(AssetBaseAssetAPIAddress);
                 client.DefaultRequestHeaders.Accept.Clear();
-                //client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 HttpResponseMessage response = await client.GetAsync(apiUrl);
                 if (response.IsSuccessStatusCode)
                 {
@@ -89,17 +78,13 @@ namespace UsersService.Infrastructure.Helpers
                 return response;
             }
         }
-
-
         private static string SiteURL(string assetBaseAPIAddress, string urlLocation)
         {
             return assetBaseAPIAddress + urlLocation;
         }
-
         private static string SiteNotificationURL(string urlLocation)
         {
             return AssetBaseAssetAPIAddress + urlLocation;
         }
-
     }
 }

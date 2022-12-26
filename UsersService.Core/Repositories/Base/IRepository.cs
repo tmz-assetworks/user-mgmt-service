@@ -1,9 +1,6 @@
-﻿using System.Threading.Tasks;
-using UsersService.Core.Entities;
-
+﻿
 namespace UsersService.Core.Repositories.Base
-{
-   
+{   
     public interface IRepository<T> where T : class
     {
         Task<IReadOnlyList<T>> GetAllAsync();

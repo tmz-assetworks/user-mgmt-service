@@ -29,17 +29,7 @@ namespace UsersService.Api.DataModel
 
         private void SucceedRequirementIfRolePresentAndValid(AuthorizationHandlerContext context, RoleRequirement requirement)
         {
-            //Utilities u = new Utilities(dbContext);
-
-            //var roles = u.getUserRole(context.User.Identity.Name);
-            //if (context.Resource is AuthorizationFilterContext authorizationFilterContext)
-            //{
-            //                    if (roles != null && requirement.Role.Any(requiredRoleID => roles.Contains(Convert.ToInt32(requiredRoleID)))) //User ...engineer
-            //    {
-
-            //        context.Succeed(requirement);
-            //    }
-            //}
+            
         }
     }
 }

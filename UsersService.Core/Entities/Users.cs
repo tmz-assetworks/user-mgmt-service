@@ -7,7 +7,7 @@ using System.Runtime.Serialization;
 namespace UsersService.Core.Entities
 {
     [DataContract]
-    public class Users 
+    public class Users
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -104,6 +104,10 @@ namespace UsersService.Core.Entities
 
         [Display(Name = "Profile Picture")]
         public string? ImagePath { get; set; }
+
+        [DataMember(Name = "notificationEnable", EmitDefaultValue = false)]
+        [DefaultValue(true)]
+        public bool NotificationEnable { get; set; }
 
         public virtual ICollection<UserRoles> UserRoles { get; set; }
         public virtual ICollection<OperatorUserMapper> OperatorUserMapper { get; set; }
