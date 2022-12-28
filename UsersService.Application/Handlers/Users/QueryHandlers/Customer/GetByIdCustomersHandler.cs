@@ -1,11 +1,5 @@
 ﻿using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UsersService.Application.Queries;
-using UsersService.Core.Entities;
 using UsersService.Core.Repositories;
 using UsersService.Core.Response;
 

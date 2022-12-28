@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using Serilog;
+using System.Linq.Expressions;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -29,17 +30,19 @@ namespace UsersService.Api.Controllers
         private readonly IMediator _mediator;
         private readonly ILogger<CustomerController> _logger;
         private readonly IConfiguration _baseconfiguration;
+        protected readonly UsersService.Infrastructure.DBContext.DBContextCore _dbContext;
         TokenBase _tokenBase;
         string JSONString = String.Empty;
-        public CustomerController(IMediator mediator, ILogger<CustomerController> logger, TokenBase token, IConfiguration baseconfiguration)
+        public CustomerController(IMediator mediator, ILogger<CustomerController> logger, TokenBase token, IConfiguration baseconfiguration, UsersService.Infrastructure.DBContext.DBContextCore dbContext)
         {
+            _dbContext = dbContext;
             _mediator = mediator;
             _logger = logger;
             _tokenBase = token;
             _baseconfiguration = baseconfiguration;
             Dictionary<string, string> myConfiguration = new Dictionary<string, string>
                 {
-                    {"AzureAd:clientId", Environment.GetEnvironmentVariable("AZUREAD_CID")},
+                     {"AzureAd:clientId", Environment.GetEnvironmentVariable("AZUREAD_CID")},
                     {"AzureAd:TenantId", Environment.GetEnvironmentVariable("AZUREAD_TID")},
                     {"AzureAd:clientSecret",Environment.GetEnvironmentVariable("AZUREAD_CLIENT_SECRET")},
                     {"AzureAd:Instance",Environment.GetEnvironmentVariable("AZUREAD_INSTANCE")},
@@ -47,19 +50,20 @@ namespace UsersService.Api.Controllers
                     {"Jwt:Key",Environment.GetEnvironmentVariable("JWT_KEY")},
                     {"Jwt:Issuer", Environment.GetEnvironmentVariable("JWT_ISSUER")},
                     {"Jwt:Audience", Environment.GetEnvironmentVariable("JWT_AUD")},
-                    {"flag:Emailflag", Environment.GetEnvironmentVariable("flag_Emailflag")},
-                    {"MailSettings:UserName", Environment.GetEnvironmentVariable("Mail_UserName")},
-                    {"MailSettings:Password", Environment.GetEnvironmentVariable("Mail_Password")},
-                    {"MailSettings:Host", Environment.GetEnvironmentVariable("Mail_Host")},
-                    {"MailSettings:Port", Environment.GetEnvironmentVariable("Mail_Port")},
                     {"AzureAd:resourceId", Environment.GetEnvironmentVariable("AZUREAD_RESOURCEID")},
                     {"AzureAd:operatorRoleId", Environment.GetEnvironmentVariable("AZUREAD_OPERATORRID")},
                     {"AzureAd:adminRoleId", Environment.GetEnvironmentVariable("AZUREAD_ADMINRID")},
-                    {"BaseUrl:fronendurl", Environment.GetEnvironmentVariable("BaseUrl_fronted")},
-                    {"AzureAd:helpdeskUserName", Environment.GetEnvironmentVariable("helpdeskUserName")},
-                    {"AzureAd:helpdeskPassword", Environment.GetEnvironmentVariable("helpdeskPassword")},
+                    {"flag:Emailflag", Environment.GetEnvironmentVariable("FLAG_EMAILFLAG")},
+                    {"MailSettings:UserName", Environment.GetEnvironmentVariable("MAIL_USERNAME")},
+                    {"MailSettings:Password", Environment.GetEnvironmentVariable("MAIL_PASSWORD")},
+                    {"MailSettings:Host", Environment.GetEnvironmentVariable("MAIL_HOST")},
+                    {"MailSettings:Port", Environment.GetEnvironmentVariable("MAIL_PORT")},
+                    {"BaseUrl:fronendurl", Environment.GetEnvironmentVariable("BASEURL_FRONTED")},
+                    {"AzureAd:helpdeskUserName", Environment.GetEnvironmentVariable("AZUREAD_HELPDESKUSERNAME")},
+                    {"AzureAd:helpdeskPassword", Environment.GetEnvironmentVariable("AZUREAD_HELPDESKPASSWORD")},
                 };
-             _baseconfiguration = new ConfigurationBuilder().AddInMemoryCollection(myConfiguration).Build();
+            if (Environment.GetEnvironmentVariable("AZUREAD_CID") != null)
+                _baseconfiguration = new ConfigurationBuilder().AddInMemoryCollection(myConfiguration).Build();
         }
         string getjson(object res)
         {
@@ -68,7 +72,6 @@ namespace UsersService.Api.Controllers
             {
                 var options = new JsonSerializerOptions { WriteIndented = true };
                 var data = System.Text.Json.JsonSerializer.Serialize(res, options);
-
                 JSONString = "{\n  \"StatusCode\" : " + (int)HttpStatusCode.OK + ",\n  \"StatusMessage\" : \"Record found\",\n  \"data\" : " + data + " \n}";
             }
             else
@@ -127,10 +130,8 @@ namespace UsersService.Api.Controllers
                 allCustomerResp.StatusMessage = RespnoseMessage.Bad_Request;
                 allCustomerResp.data = null;
                 _logger.LogError(ex.ToString());
-
             }
             return allCustomerResp;
-
         }
         [HttpGet("GetCustomerbyID")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -141,7 +142,7 @@ namespace UsersService.Api.Controllers
             {
                 if (id == null || id==0)
                 {
-                    _tokenBase.acces_token = await HttpContext.GetTokenAsync("access_token");
+                    _tokenBase.acces_token = HttpContext != null ? await HttpContext.GetTokenAsync("access_token") : _tokenBase.acces_token;
                     AllCustomerResp res = await _mediator.Send(new GetByIdCustomersQuery(""));
                     return res;
                 }
@@ -156,23 +157,21 @@ namespace UsersService.Api.Controllers
                 Log.Information("error occurred :" + ex.Message);
                 JSONString = "{\n  \"data\" : " + null + ",  \"StatusMessage\" : " + ex.Message.ToString() + ",\n  \"StatusCode\" : " + (int)HttpStatusCode.NotFound + " \n}";
                 _logger.LogError(ex.ToString());
-
             }
             return allCustomerResp;
-
-
         }
         [HttpPost("CreateCustomer")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<CustomerResponse>> CreateCustomer([FromBody] CreateCustomersCommand command)
         {
-            _tokenBase.acces_token = await HttpContext.GetTokenAsync("access_token");
-            MailResponse mailresponse = new MailResponse();
-            string callingMethod = APIConstant.InsTaskNotification;
-            TaskNotificationRequest taskNotificationRequest = new TaskNotificationRequest();
             CustomerResponse resp = new CustomerResponse();
             try
             {
+             _tokenBase.acces_token = HttpContext != null ? await HttpContext.GetTokenAsync("access_token") : _tokenBase.acces_token;
+            MailResponse mailresponse = new MailResponse();
+            string callingMethod = APIConstant.InsTaskNotification;
+            TaskNotificationRequest taskNotificationRequest = new TaskNotificationRequest();
+            
                 if (!string.IsNullOrEmpty(command.userName) && !string.IsNullOrEmpty(command.AddressLine1) && !string.IsNullOrEmpty(command.ZipCode))
                 {
                     if (command.userName.Contains(' ') && command.AddressLine1.Contains(' '))
@@ -194,8 +193,7 @@ namespace UsersService.Api.Controllers
                             resp.StatusCode = (int)HttpStatusCode.OK;
                             resp.StatusMessage = RespnoseMessage.Record_Save_Successfully;
                             resp.Id = result.Id;
-                            UsersService.Api.Mail.MailService mailService = new UsersService.Api.Mail.MailService(_baseconfiguration);
-                            //Console.WriteLine("Send Mail :" + (nikname, userprincipal, command.EmailId, long.Parse(resultRes.OTP)));
+                            UsersService.Api.Mail.MailService mailService = new UsersService.Api.Mail.MailService(_baseconfiguration, _dbContext);
                             mailresponse=mailService.SendEmailCustomer(command.userName,command.email);
                             //------insert notification-------------
                             taskNotificationRequest.category = "Email";
@@ -203,8 +201,16 @@ namespace UsersService.Api.Controllers
                             taskNotificationRequest.content = mailresponse.Body;
                             taskNotificationRequest.ipaddress = "192.186.178.07";
                             taskNotificationRequest.userId = _tokenBase.getobjectid();
-                            StringContent httpContent = new StringContent(JsonConvert.SerializeObject(taskNotificationRequest), Encoding.UTF8, "application/json");
-                            HttpResponseMessage response = await Helper.GetCallAssetWithBodyAuthAPIAsync(callingMethod, httpContent, _tokenBase.acces_token);
+                            try
+                            {
+                                StringContent httpContent = new StringContent(JsonConvert.SerializeObject(taskNotificationRequest), Encoding.UTF8, "application/json");
+                                HttpResponseMessage response = await Helper.GetCallAssetWithBodyAuthAPIAsync(callingMethod, httpContent, _tokenBase.acces_token);
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Information("error occurred :" + ex.Message);
+                                return Ok(resp);
+                            }
                         }
                         else
                         {
@@ -219,7 +225,6 @@ namespace UsersService.Api.Controllers
                         resp.StatusMessage = RespnoseMessage.Customer_not_Created;
                         resp.Id = 0;
                     }
-
                 }
                 else
                 {
@@ -233,13 +238,11 @@ namespace UsersService.Api.Controllers
             {
                 Log.Information("error occurred :" + ex.Message);
                 _logger.LogError(ex.ToString());
-                return new ContentResult()
-                {
-                    ContentType = RespnoseMessage.Exception,
-                    StatusCode = 404,
-                    Content = RespnoseMessage.Customer_not_Created
-                };
+                resp.StatusCode = 404;
+                resp.StatusMessage= RespnoseMessage.Customer_not_Created;
+                resp.Id= 0;
             }
+            return resp;
         }
 
         [HttpPut("UpdateCustomer")]
@@ -249,32 +252,30 @@ namespace UsersService.Api.Controllers
             CustomerResponse resp = new CustomerResponse();
             try
             {
-                var result = await _mediator.Send(command);
-                if (result != null)
-                {
-                    resp.StatusCode = (int)HttpStatusCode.OK;
-                    resp.StatusMessage = RespnoseMessage.Record_Updated_Successfully;
-                    resp.Id = result.Id;
-                }
-                else
-                {
-                    resp.StatusCode = (int)HttpStatusCode.OK;
-                    resp.StatusMessage = RespnoseMessage.Record_Not_Updated;
-                    resp.Id = result.Id;
-                }
-                return Ok(resp);
+                    var result = await _mediator.Send(command);
+                    if (result != null)
+                    {
+                        resp.StatusCode = (int)HttpStatusCode.OK;
+                        resp.StatusMessage = RespnoseMessage.Record_Updated_Successfully;
+                        resp.Id = result.Id;
+                    }
+                    else
+                    {
+                        resp.StatusCode = (int)HttpStatusCode.BadRequest;
+                        resp.StatusMessage = RespnoseMessage.Record_Not_Updated;
+                        resp.Id = result.Id;
+                    }
+                    return Ok(resp);
             }
             catch (Exception ex)
             {
                 Log.Information("error occurred :" + ex.Message);
                 _logger.LogError(ex.ToString());
-                return new ContentResult()
-                {
-                    ContentType = RespnoseMessage.Exception,
-                    StatusCode = 404,
-                    Content = RespnoseMessage.Customer_not_Updated
-                };
+                resp.StatusCode = 404;
+                resp.StatusMessage=RespnoseMessage.Customer_not_Updated;
+                resp.Id = 0;
             }
+            return resp;
         }
         [HttpDelete("DeleteCustomer")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -302,13 +303,11 @@ namespace UsersService.Api.Controllers
             {
                 Log.Information("error occurred :" + ex.Message);
                 _logger.LogError(ex.ToString());
-                return new ContentResult()
-                {
-                    ContentType = RespnoseMessage.Exception,
-                    StatusCode = 404,
-                    Content = RespnoseMessage.Customer_not_Deleted
-                };
+                resp.StatusCode = 404;
+                resp.StatusMessage = RespnoseMessage.Customer_not_Deleted;
+                resp.Id = 0;
             }
+            return resp;
         }
     }
 }

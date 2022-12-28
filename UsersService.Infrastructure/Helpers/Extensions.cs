@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace UsersService.Infrastructure.Helpers
 {
@@ -13,7 +8,6 @@ namespace UsersService.Infrastructure.Helpers
         public static string GetEnumDisplayName(this Enum value)
         {
             FieldInfo fi = value.GetType().GetField(value.ToString());
-
             DisplayAttribute[] attributes = (DisplayAttribute[])fi.GetCustomAttributes(typeof(DisplayAttribute), false);
 
             if (attributes != null && attributes.Length > 0)
@@ -21,7 +15,6 @@ namespace UsersService.Infrastructure.Helpers
             else
                 return value.ToString();
         }
-
         public static int Getrandomnumber()
         {
             Random generator = new Random();

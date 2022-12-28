@@ -35,6 +35,7 @@ namespace UsersService.Application.Handlers.Assets.CommandHandlers
             userEntitiy.UserRoles = userEntitiy.UserRoles;
             userEntitiy.OtpDateTime = DateTime.Now;
             userEntitiy.Otp = rotp.ToString();
+            userEntitiy.NotificationEnable = true;
             List<UserRoles> userRoles = new List<UserRoles>();
             for (int i = 0; i < request.UserRolesCommand.Count(); i++)
             {
@@ -61,7 +62,7 @@ namespace UsersService.Application.Handlers.Assets.CommandHandlers
                         CreatedOn = DateTime.Now,
                         ModifiedOn = DateTime.Now,
                         ModifiedBy = "",
-                        UserName = "NA",
+                        //UserName = "NA",
                         UserId = 0,
                         IsActive = true,
                         LocationId = request.operatorUserMapperCommand[i],

@@ -1,12 +1,10 @@
-﻿
-using MediatR;
+﻿using MediatR;
 using Microsoft.AspNetCore.Http;
 using UsersService.Core.Response;
 using UsersService.Responses.Users;
 
 namespace UsersService.Application.Commands.Users
-{
-   
+{   
     public class UpdateUserCommand : IRequest<UpdateUserResponse>   
     {
         public long Id { get; set; }
@@ -18,7 +16,6 @@ namespace UsersService.Application.Commands.Users
         public string AddressLine2 { get; set; }
         public long CountryID { get; set; }
         public long StateID { get; set; }
-        //public long CityID { get; set; }
         public string CityName { get; set; }
         public string ZipCode { get; set; }
         public string ModifiedBy { get; set; }
@@ -43,19 +40,17 @@ namespace UsersService.Application.Commands.Users
         public string AddressLine2 { get; set; }
         public long CountryID { get; set; }
         public long StateID { get; set; }
-        // public long CityID { get; set; }
         public string CityName { get; set; }
         public string ZipCode { get; set; }
         public string ModifiedBy { get; set; }
+        public bool NotificationEnable { get; set; }
     }
     public class UpdateUserProfileImage : IRequest<UserProfileResponse>
-    {
-        
+    {        
         public string ImagePath { get; set; }
     }
     public class UpdatedUserProfileImage : IRequest<UserProfileResponse>
     {
-
         public IFormFile ProfilePicture { get; set; }
     }
 }

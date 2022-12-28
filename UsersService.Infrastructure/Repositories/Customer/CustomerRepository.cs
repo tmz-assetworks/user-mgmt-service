@@ -1,8 +1,4 @@
-﻿
-using Microsoft.EntityFrameworkCore;
-using System.Net;
-using System.Security.Cryptography;
-using System.Text.RegularExpressions;
+﻿using System.Net;
 using UsersService.Core.Entities;
 using UsersService.Core.PagingHelper;
 using UsersService.Core.Repositories;
@@ -30,8 +26,6 @@ namespace UsersService.Infrastructure.Repositories.Customer
                               on m.CountryID equals country.Id
                               join state in _dbContext.State
                               on m.StateID equals state.Id
-                              //join City in _dbContext.City
-                              //on m.CityID equals City.Id
                               where (m.Id== Convert.ToInt64(Custid))
                               select new customerbyID
                               {
@@ -110,9 +104,7 @@ namespace UsersService.Infrastructure.Repositories.Customer
                     allCustomerResp.StatusMessage = "Record not Found";
                     allCustomerResp.data = null;
                 }
-            }
-
-            
+            }          
             return allCustomerResp;
         }
         public async Task<AllCustomersResponse> GetAllCustomers(GetAllCustomerRequest getAllCustomerRequest)
@@ -163,7 +155,6 @@ namespace UsersService.Infrastructure.Repositories.Customer
                getAllCustomerRequest.PageSize);
             return allCustomerResp;
         }
-
     }
 }
 

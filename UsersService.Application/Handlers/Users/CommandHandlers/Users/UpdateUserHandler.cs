@@ -3,7 +3,6 @@ using MediatR;
 using UsersService.Application.Commands.Users;
 using UsersService.Core.Entities;
 using UsersService.Core.Repositories.Users;
-using UsersService.Responses.Users;
 using UsersService.Core.Response;
 using OperatorUserMapper = UsersService.Core.Entities.OperatorUserMapper;
 
@@ -12,13 +11,10 @@ namespace UsersService.Application.Handlers.Users.CommandHandlers
     public class UpdateUserHandler : IRequestHandler<UpdateUserCommand, UpdateUserResponse>
     {
         private readonly IUserRepository _UserRepo;
-
         public UpdateUserHandler(IUserRepository UserRepository)
         {
             _UserRepo = UserRepository;
         }
-
-
         public async Task<UpdateUserResponse> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
         {
             UpdateUserResponse updateuserResponse =new UpdateUserResponse();
@@ -57,7 +53,6 @@ namespace UsersService.Application.Handlers.Users.CommandHandlers
                         CreatedOn = DateTime.Now,
                         ModifiedOn = DateTime.Now,
                         ModifiedBy = request.ModifiedBy,
-                        UserName = "NA",
                         UserId = request.Id,
                         IsActive = true,
                         LocationId = request.operatorUserMapperCommand[i],
@@ -66,11 +61,7 @@ namespace UsersService.Application.Handlers.Users.CommandHandlers
             }
             UserEntitiy.OperatorUserMapper = OperatorUserMapper;
             UserEntitiy.UserRoles = userRoles;
-
             updateuserResponse = await _UserRepo.UpdateUser(UserEntitiy);
-            //var updateUser = _UserRepo.UpdateAsync(UserEntitiy, UserEntitiy.Id);
-            //var mapUserResponse = UsersMapper.Mapper.Map<UserResponse>(updateUser.Result);
-            //userResponse= updateUser
             return updateuserResponse;
         }
         

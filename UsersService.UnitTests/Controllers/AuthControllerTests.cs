@@ -26,12 +26,13 @@ namespace UsersService.Api.Controllers.Tests
         private readonly IConfiguration _configuration;
         private readonly IMediator _mediator;
         private readonly ILogger<UserController> _logger;
+        protected readonly UsersService.Infrastructure.DBContext.DBContextCore _dbContext;
         //IDictionary<string, string> myConfiguration = new Dictionary<string, string>();
 
         public AuthControllerTests()
         {
 
-            authController = new AuthController(_configuration, _mediator);
+            authController = new AuthController(_configuration, _mediator,_dbContext);
         }
 
 

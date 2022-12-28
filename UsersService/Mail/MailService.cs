@@ -1,31 +1,27 @@
 ﻿
-using Microsoft.AspNetCore.Http;
-using Microsoft.IdentityModel.Tokens;
-using Serilog;
 using System.Net.Mail;
 using UsersService.Api.Model;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
+using UsersService.Core.Entities;
 
 namespace UsersService.Api.Mail
 {
     public class MailService
     {
         private IConfiguration Configuration;
-        public MailService(IConfiguration iConfig)
+        protected readonly UsersService.Infrastructure.DBContext.DBContextCore _dbContext;
+        public MailService(IConfiguration iConfig, UsersService.Infrastructure.DBContext.DBContextCore dbContext)
         {
             Configuration = iConfig;
+            _dbContext = dbContext;
         }
         public async Task SendEmailAsync(MailRequest request)
         {
-           
             MailMessage msg = new MailMessage();
-            //msg.To.Add(new MailAddress("anil.shukla@assetworks.com", "anil"));
             msg.To.Add(new MailAddress(request.ToEmail, (request.ToEmail.Split("@")[0])));
             msg.From = new MailAddress(request.frommail, (request.frommail.Split("@")[0]));
             msg.Subject = request.Subject;
             msg.Body = request.Body;
             msg.IsBodyHtml = true;
-
             SmtpClient client = new SmtpClient();
             client.UseDefaultCredentials = false;
             client.Credentials = new System.Net.NetworkCredential(this.Configuration.GetSection("MailSettings")["UserName"], this.Configuration.GetSection("MailSettings")["Password"]);
@@ -36,13 +32,11 @@ namespace UsersService.Api.Mail
             try
             {
                 client.Send(msg);
-                //Console.WriteLine("Message Sent Succesfully");
             }
             catch (Exception ex)
             {
-               // Console.WriteLine(ex.ToString());
-            }
 
+            }
         }
 
         public MailResponse SendEmail(string nikname, string userprincipal, string emailId, long rOTP)
@@ -51,21 +45,21 @@ namespace UsersService.Api.Mail
             MailResponse response = new MailResponse();
             if (Configuration["flag:Emailflag"] == "0")
             {
-               // request.ToEmail = "ashu.setiya@assetworks.com";
-                request.ToEmail = "tripathi7800@gmail.com";
-                request.frommail = "mamta.mishra@assetworks.com";
+                request.ToEmail = Configuration["MailSettings:UserName"];
+                request.frommail = Configuration["MailSettings:UserName"];
             }
             else
             {
                 request.ToEmail = emailId;
-                request.frommail = "mamta.mishra@assetworks.com";
+                request.frommail = Configuration["MailSettings:UserName"];
             }
-
-            request.Subject = "Registration OTP";
-            request.Body = "Dear " + nikname + ", <br><br> Your OTP Is:" + " " + rOTP + ". For verify otp please <a href=\""+Configuration["BaseUrl:fronendurl"] +"/verifyOTP?emailid=" + emailId + "\">click hear</a> <br><br> Regards <br> Assetwork Teams";
-
-            UsersService.Api.Mail.MailService mailService = new UsersService.Api.Mail.MailService(Configuration);
-            mailService.SendEmailAsync(request);
+            EmailTemplate objuser = _dbContext.EmailTemplate.Where(e => e.Type == "USER_REGISTRATION").FirstOrDefault();
+            string srrlink = "<a href ='" + Configuration["BaseUrl:fronendurl"] + "/verifyOTP?emailid=" + emailId + "'>click here</a>";
+            string actual = objuser.Body.Replace("$link", srrlink).Replace("$nikname", nikname).Replace("$rOTP", rOTP.ToString());
+            request.Subject = objuser.Subjects;
+            request.Body = actual;
+            UsersService.Api.Mail.MailService mailService = new UsersService.Api.Mail.MailService(Configuration,_dbContext);
+            SendEmailAsync(request);
             Console.WriteLine("Mail Response :" + request);
             response.Subject = request.Subject;
             response.Body = request.Body;
@@ -77,20 +71,45 @@ namespace UsersService.Api.Mail
             MailResponse response = new MailResponse();
             if (Configuration["flag:Emailflag"] == "0")
             {
-                 request.ToEmail = "ashu.setiya@assetworks.com";
-                //request.ToEmail = "tripathi7800@gmail.com";
-                request.frommail = "mamta.mishra@assetworks.com";
+                request.ToEmail = Configuration["MailSettings:UserName"];
+                request.frommail = Configuration["MailSettings:UserName"];
             }
             else
             {
                 request.ToEmail = emailId;
-                request.frommail = "mamta.mishra@assetworks.com";
+                request.frommail = Configuration["MailSettings:UserName"];
             }
+            EmailTemplate objcustomer = _dbContext.EmailTemplate.Where(e =>e.Type=="CUSTOMER_REGISTRATION").FirstOrDefault();
+            string actual = objcustomer.Body.Replace("$User", customer);
+            request.Subject = objcustomer.Subjects;
+            request.Body= actual;
+            UsersService.Api.Mail.MailService mailService = new UsersService.Api.Mail.MailService(Configuration, _dbContext);
+            mailService.SendEmailAsync(request);
+            Console.WriteLine("Mail Response :" + request);
+            response.Subject = request.Subject;
+            response.Body = request.Body;
+            return response;
+        }
 
-            request.Subject = "Registration OTP";
-            request.Body = "Dear " + customer + ", <br><br> Your Welcome <br><br> Regards <br> Assetwork Teams";
-
-            UsersService.Api.Mail.MailService mailService = new UsersService.Api.Mail.MailService(Configuration);
+        public MailResponse SendEmailUserVerify(string emailId, string rOTP,string name)
+        {
+            MailRequest request = new MailRequest();
+            MailResponse response = new MailResponse();
+            if (Configuration["flag:Emailflag"] == "0")
+            {
+                request.ToEmail = Configuration["MailSettings:UserName"];
+                request.frommail = Configuration["MailSettings:UserName"];
+            }
+            else
+            {
+                request.ToEmail = emailId;
+                request.frommail = Configuration["MailSettings:UserName"];
+            }
+            EmailTemplate objcustomer = _dbContext.EmailTemplate.Where(e => e.Type == "FORGATE_PASSWORD").FirstOrDefault();
+            string actual = objcustomer.Body.Replace("$User", name).Replace("$rotp",rOTP);
+            request.Subject = objcustomer.Subjects;
+            request.Body = actual;
+            UsersService.Api.Mail.MailService mailService = new UsersService.Api.Mail.MailService(Configuration, _dbContext);
             mailService.SendEmailAsync(request);
             Console.WriteLine("Mail Response :" + request);
             response.Subject = request.Subject;

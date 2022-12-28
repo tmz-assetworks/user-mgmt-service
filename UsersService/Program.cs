@@ -12,11 +12,13 @@ namespace UsersService.Api
         public static void Main(string[] args)
         {
             var MyConfig = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
-            //string connectionString = MyConfig.GetValue<string>("LogsUrl:Url");
-            //string containerName = MyConfig.GetValue<string>("LogsUrl:containerName");
-            var containerName = Environment.GetEnvironmentVariable("ContainerName");
-            string connectionString = Environment.GetEnvironmentVariable("ConnectionStringLogs");
-            // string connectionString = "DefaultEndpointsProtocol=https;AccountName=assetswork;AccountKey=Rk7iyAEtGHdMWfojFlyE23dXYsMDUkH1zvLghSjWW9kZX7Ecv6wuJuvRifNQfOChKmY5d1Hvx7mE+AStxFztQw==;EndpointSuffix=core.windows.net";
+            string containerName = Environment.GetEnvironmentVariable("LOG_CONTAINER_NAME");
+            string connectionString = Environment.GetEnvironmentVariable("LOG_CONNECTIONSTRING");
+            if (connectionString == null)
+            {
+                connectionString = MyConfig.GetValue<string>("LOG:CONTAINER_NAME");
+                containerName = MyConfig.GetValue<string>("LOG:CONNECTIONSTRING");
+            }
             Log.Logger = new LoggerConfiguration()
                  .WriteTo.Console().WriteTo.Debug(outputTemplate: DateTime.Now.ToString()).WriteTo.File("./logs/log-.txt", rollingInterval: RollingInterval.Day)
                  .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", Serilog.Events.LogEventLevel.Warning)

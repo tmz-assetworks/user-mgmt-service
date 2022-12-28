@@ -1,16 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.IdentityModel.Tokens.Jwt;
 
 namespace UsersService.Infrastructure.Helpers
 {
     public class TokenBase
     {
         public string acces_token { get; set; }
-
         public string getcustomerId()
         {
             var handler = new JwtSecurityTokenHandler();

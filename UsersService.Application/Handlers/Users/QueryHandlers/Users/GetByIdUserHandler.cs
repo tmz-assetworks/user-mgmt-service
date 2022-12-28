@@ -1,11 +1,4 @@
-﻿using UsersService.Core.Queries;
-using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UsersService.Core.Entities;
+﻿using MediatR;
 using UsersService.Core.Repositories.Users;
 using UsersService.Application.Queries;
 using UsersService.Core.Response;

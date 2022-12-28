@@ -14,13 +14,10 @@ namespace UsersService.Application.Handlers.Users.CommandHandlers.Customer
     public class UpdateCustomerHandler : IRequestHandler<UpdateCustomerCommand, CustomerResponse>
     {
         private readonly ICustomerRepository _CustRepo;
-
         public UpdateCustomerHandler(ICustomerRepository CustomerRepository)
         {
             _CustRepo = CustomerRepository;
         }
-
-
         public async Task<CustomerResponse> Handle(UpdateCustomerCommand request, CancellationToken cancellationToken)
         {
             var CustEntitiy = UsersMapper.Mapper.Map<UsersService.Core.Entities.Customers>(request);
