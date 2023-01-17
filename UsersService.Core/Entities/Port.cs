@@ -39,7 +39,7 @@ namespace UsersService.Core.Entities
 
 
         [DataMember(Name = "incrementalPower", EmitDefaultValue = false)]
-        public long IncrementalPower { get; set; }
+        public string IncrementalPower { get; set; }
 
 
         [DataMember(Name = "isActive", EmitDefaultValue = false)]
@@ -47,11 +47,11 @@ namespace UsersService.Core.Entities
 
 
         [DataMember(Name = "maxPower", EmitDefaultValue = false)]
-        public long MaxPower { get; set; }
+        public string MaxPower { get; set; }
 
 
         [DataMember(Name = "minPower", EmitDefaultValue = false)]
-        public long MinPower { get; set; }
+        public string MinPower { get; set; }
 
 
         [DataMember(Name = "modifiedBy", EmitDefaultValue = false)]
@@ -72,7 +72,7 @@ namespace UsersService.Core.Entities
 
 
         [DataMember(Name = "power", EmitDefaultValue = false)]
-        public long Power { get; set; }
+        public string Power { get; set; }
 
     }
 }
