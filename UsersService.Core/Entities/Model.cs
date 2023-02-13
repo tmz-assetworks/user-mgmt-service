@@ -50,11 +50,6 @@ namespace UsersService.Core.Entities
         [DataMember(Name = "modifiedOn", EmitDefaultValue = false)]
         public DateTime ModifiedOn { get; set; }
 
-
-        [DataMember(Name = "portId", EmitDefaultValue = false)]
-        public long PortId { get; set; }
-        public virtual Port Port { get; set; }
-
         [DataMember(Name = "protocolId", EmitDefaultValue = false)]
         public long ProtocolId { get; set; }
         public virtual Protocol Protocol { get; set; }
