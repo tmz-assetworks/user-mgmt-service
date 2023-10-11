@@ -74,6 +74,7 @@ namespace UsersService.Api.Controllers
                     {"BaseUrl:fronendurl", Environment.GetEnvironmentVariable("BASEURL_FRONTED")},
                     {"AzureAd:helpdeskUserName", Environment.GetEnvironmentVariable("AZUREAD_HELPDESKUSERNAME")},
                     {"AzureAd:helpdeskPassword", Environment.GetEnvironmentVariable("AZUREAD_HELPDESKPASSWORD")},
+                    {"AzureAd:audience", Environment.GetEnvironmentVariable("AZUREAD_AUD")},
 
                 };
             if (Environment.GetEnvironmentVariable("AZUREAD_CID") != null)

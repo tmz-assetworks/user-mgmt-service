@@ -6,16 +6,18 @@ using UsersService.Core.Repositories.Users;
 using UsersService.Responses.Users;
 using OperatorUserMapper = UsersService.Core.Entities.OperatorUserMapper;
 using Extensions = UsersService.Infrastructure.Helpers.Extensions;
+using UsersService.Infrastructure.Helpers;
 
 namespace UsersService.Application.Handlers.Assets.CommandHandlers
 {
     public class CreateUserHandler : IRequestHandler<CreateUserCommand, UserResponse>
     {
         private readonly IUserRepository _userRepo;
-
-        public CreateUserHandler(IUserRepository cableRepository)
+        TokenBase _tokenBase;
+        public CreateUserHandler(IUserRepository cableRepository, TokenBase tokenBase)
         {
             _userRepo = cableRepository;
+            _tokenBase = tokenBase;
         }
         public async Task<UserResponse> Handle(CreateUserCommand request, CancellationToken cancellationToken)
         {
@@ -25,7 +27,10 @@ namespace UsersService.Application.Handlers.Assets.CommandHandlers
             {
                 throw new ApplicationException("Issue with mapper");
             }
-
+            if (_tokenBase.getrole().ToLower() == "admin")
+            {
+                userEntitiy.CustomerID = _userRepo.GetByObjectIdUser(_tokenBase.getobjectid()).Result.CustomerID;
+            }
             userEntitiy.IsActive = true;//set newly created customer as a active
             userEntitiy.CreatedOn = DateTime.Now;
             userEntitiy.ModifiedOn = DateTime.Now;
