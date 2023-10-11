@@ -96,10 +96,11 @@ namespace UsersService.Api.Controllers
             }
             try
             {
+                var userprincipal = await Username(emailid);
                 HttpClient httpClient = new HttpClient();
                 StringContent stringContent = new StringContent(System.Text.Json.JsonSerializer.Serialize<String>(""), Encoding.UTF8, "application/json");
                 httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAdminAccessToken()));
-                HttpResponseMessage httpResponseMessage = await httpClient.PostAsync(string.Concat("https://graph.microsoft.com/v1.0/users/", emailid + "/revokeSignInSessions"), stringContent);
+                HttpResponseMessage httpResponseMessage = await httpClient.PostAsync(string.Concat("https://graph.microsoft.com/v1.0/users/", userprincipal.useremail + "/revokeSignInSessions"), stringContent);
 
                 str = await httpResponseMessage.Content.ReadAsStringAsync();
                 if (httpResponseMessage.IsSuccessStatusCode)
@@ -310,8 +311,8 @@ namespace UsersService.Api.Controllers
         [HttpPost]
         [AllowAnonymous]
         public async Task<IActionResult> Post([FromBody] AuthModel authparam)
-        {
-            var userprincipal = await Username(authparam.username);
+        {            
+			var userprincipal = await Username(authparam.username);
             string responce = string.Empty;
             if (string.IsNullOrEmpty(authparam.username) || string.IsNullOrEmpty(authparam.password))
             {
@@ -399,8 +400,101 @@ namespace UsersService.Api.Controllers
             }
         }
 
-        // POST api/<AuthController>
-        [HttpGet]
+		[HttpPost]
+		[AllowAnonymous]
+		[Route("Auth")]
+		public async Task<IActionResult> Auth([FromBody] AuthModel authparam)
+		{
+			var userprincipal = await Username(authparam.username);
+			string responce = string.Empty;
+			if (string.IsNullOrEmpty(authparam.username) || string.IsNullOrEmpty(authparam.password))
+			{
+				responce = @"{""StatusCode"":""400"",""Message"":""" + "UserName or Password are blank" + @""",""data"": [{""token"":""" + null + @"""}]}";
+				return BadRequest(responce);
+			}
+			try
+			{
+				if (userprincipal.isActive == true)
+				{
+					string clientid = this._baseconfiguration["AzureAd:clientId"];
+					string TenantId = this._baseconfiguration["AzureAd:TenantId"];
+					string clientsecret = this._baseconfiguration["AzureAd:clientSecret"];
+					HttpClient httpClient = new HttpClient();
+					httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", this.GetAccessToken()));
+					string str1 = string.Concat("https://login.microsoftonline.com/", TenantId, "/oauth2/token?api-version=1.0");
+					List<KeyValuePair<string, string>> list = new List<KeyValuePair<string, string>>();
+					list.Add(new KeyValuePair<string, string>("resource", clientid));
+					list.Add(new KeyValuePair<string, string>("client_id", clientid));
+					list.Add(new KeyValuePair<string, string>("client_secret", clientsecret));
+					list.Add(new KeyValuePair<string, string>("grant_type", "password"));
+					list.Add(new KeyValuePair<string, string>("username", userprincipal.useremail));
+					list.Add(new KeyValuePair<string, string>("password", authparam.password));
+					list.Add(new KeyValuePair<string, string>("scope", "openid User.Read"));
+					List<KeyValuePair<string, string>> list1 = list;
+					FormUrlEncodedContent formUrlEncodedContent = new FormUrlEncodedContent(list1);
+					HttpResponseMessage result = httpClient.PostAsync(str1, formUrlEncodedContent).Result;
+
+					if (result.IsSuccessStatusCode)
+					{
+
+						responce = result.Content.ReadAsStringAsync().Result;
+
+						JObject jObj = JObject.Parse(responce);
+
+						AuthResponce res = new AuthResponce()
+						{
+							StatusCode = 200,
+							Message = "Login Success",
+							data = new List<AuthData>() {
+							  new AuthData() {
+							  access_token=jObj["access_token"].ToString(),
+							  id_token= jObj["id_token"].ToString(),
+							  refresh_token=jObj["refresh_token"].ToString(),
+							  resource="tokenString",
+							  token_type="Bearer"
+							  }
+							  }
+						};
+						return Ok(res);
+					}
+					else
+					{
+						responce = result.Content.ReadAsStringAsync().Result;
+						string errorMessage = "";
+						try
+						{
+							errorMessage = JObject.Parse(responce)["error_codes"].ToString();
+						}
+						catch (Exception ex) { }
+
+						if (errorMessage.Contains("50126"))
+						{
+							errorMessage = "Invalid password";
+						}
+						else if (errorMessage.Contains("50034"))
+						{
+							errorMessage = "Invalid Username";
+						}
+						responce = @"{""StatusCode"":""" + result.StatusCode.ToString() + @""",""Message"":""" + errorMessage + @""",""data"":" + responce + "}";
+						return StatusCode((int)result.StatusCode, responce);
+					}
+				}
+				else
+				{
+					responce = @"{""StatusCode"":""" + 400 + @""",""Message"":""" + "User InActive" + @""",""data"":" + responce + "}";
+					return BadRequest(responce);
+				}
+			}
+			catch (Exception ex)
+			{
+				Log.Information("error occurred :" + ex.Message);
+				responce = @"{""StatusCode"":""400"",""Message"":""" + "Bad Request" + @""",""data"": [{""token"":""" + null + @"""}]}";
+				return BadRequest(responce);
+			}
+		}
+
+		// POST api/<AuthController>
+		[HttpGet]
         [Route("AuthRefresh")]
         public async Task<IActionResult> AuthRefresh(string refreshToken)
         {
