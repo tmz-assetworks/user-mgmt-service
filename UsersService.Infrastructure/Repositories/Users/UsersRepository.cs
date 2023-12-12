@@ -153,10 +153,15 @@ namespace UsersService.Infrastructure.Repositories.Assets
 
             return allUserResponse;
         }
-
-        public Task<Users> GetByObjectIdUser(string objectid)
+        /// <summary>
+        /// this is for getting userID
+        /// </summary>
+        /// <param name="objectid">Admin ID</param>
+        /// <returns></returns>
+        public async Task<Users> GetByObjectIdUser(string objectid)
         {
-            throw new NotImplementedException();
+
+            return await _dbContext.Users.Where(x => x.ObjectId == objectid).FirstOrDefaultAsync();
         }
 
         public Task<Users> GetUserPrincipalNameUser(string userPrincipalName)
