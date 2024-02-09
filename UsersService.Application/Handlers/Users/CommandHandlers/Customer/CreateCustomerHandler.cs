@@ -32,6 +32,7 @@ namespace UsersService.Application.Handlers.Users.CommandHandlers.Customer
             custEntitiy.createdOn = DateTime.Now;
             custEntitiy.modifiedOn = DateTime.Now;
             custEntitiy.modifiedBy = "";
+            custEntitiy.isActive = true;
             var addcustResponse = await _custRepo.AddAsync(custEntitiy);
             var mapcustResponse = UsersMapper.Mapper.Map<CustomerResponse>(addcustResponse);
             return mapcustResponse;
