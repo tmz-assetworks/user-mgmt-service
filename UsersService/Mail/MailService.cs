@@ -105,7 +105,8 @@ namespace UsersService.Api.Mail
                 request.ToEmail = emailId;
                 request.frommail = Configuration["MailSettings:UserName"];
             }
-            EmailTemplate objcustomer = _dbContext.EmailTemplate.Where(e => e.Type == "FORGATE_PASSWORD").FirstOrDefault();
+            //EmailTemplate objcustomer = _dbContext.EmailTemplate.Where(e => e.Type == "FORGATE_PASSWORD").FirstOrDefault();
+            EmailTemplate objcustomer = _dbContext.EmailTemplate.Where(e => e.Type == "FORGOT_PASSWORD").FirstOrDefault();
             string actual = objcustomer.Body.Replace("$User", name).Replace("$rotp",rOTP);
             request.Subject = objcustomer.Subjects;
             request.Body = actual;

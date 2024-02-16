@@ -240,6 +240,75 @@ namespace UsersService.Api.Controllers
             }
 
         }
+        //[HttpGet]
+        //[Route("VerifyUser")]
+        //public async Task<IActionResult> VerifyUser(string emailid)
+        //{
+
+        //    string callingMethod = APIConstant.CreateNotificationWithoutToken;
+        //    TaskNotificationRequest taskNotificationRequest = new TaskNotificationRequest();
+        //    MailResponse mailresponse = new MailResponse();
+        //    var userprincipal = await Username(emailid);
+        //    string responce = string.Empty;
+        //    string rotp = Extensions.Getrandomnumber().ToString();
+        //    var result = await _mediator.Send(new UpdateOtpQuery(userprincipal.useremail, rotp));
+        //    if (string.IsNullOrEmpty(emailid))
+        //    {
+        //        responce = @"{""StatusCode"":""400"",""Message"":""" + "Username blank" + @""",""data"": [{""token"":""" + null + @"""}]}";
+        //        return BadRequest(responce);
+
+        //    }
+        //    try
+        //    {
+        //        UsersService.Api.Mail.MailService mailService = new UsersService.Api.Mail.MailService(_baseconfiguration, _dbContext);
+        //        mailresponse = mailService.SendEmailUserVerify(emailid, rotp, userprincipal.name);
+        //        HttpClient httpClient = new HttpClient();
+        //        // StringContent stringContent = new StringContent(JsonSerializer.Serialize<UserNModel>(userN), Encoding.UTF8, "application/json");
+        //        httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAccessToken()));
+        //        HttpResponseMessage httpResponseMessage = await httpClient.GetAsync(string.Concat("https://graph.microsoft.com/v1.0/users/", userprincipal.useremail));
+        //        //------insert notification-------------
+        //        taskNotificationRequest.category = "Email";
+        //        taskNotificationRequest.messagetype = mailresponse.Subject;
+        //        taskNotificationRequest.content = mailresponse.Body;
+        //        taskNotificationRequest.ipaddress = "192.186.178.07";
+        //        taskNotificationRequest.userId = userprincipal.objid;
+
+        //        Microsoft.AspNetCore.Mvc.Formatters.MediaTypeCollection myContentTypes = new Microsoft.AspNetCore.Mvc.Formatters.MediaTypeCollection { System.Net.Mime.MediaTypeNames.Application.Json };
+        //        responce = await httpResponseMessage.Content.ReadAsStringAsync();
+        //        if (httpResponseMessage.IsSuccessStatusCode)
+        //        {
+
+        //            responce = @"{""StatusCode"":""200"",""Message"":""Verify Success"",""data"":" + responce + "}";
+        //            try
+        //            {
+        //                StringContent httpContent = new StringContent(JsonConvert.SerializeObject(taskNotificationRequest), Encoding.UTF8, "application/json");
+        //                HttpResponseMessage response = await Helper.GetCallAssetWithBody1APIAsync(callingMethod, httpContent);
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                Log.Information("error occurred :" + ex.Message);
+        //                return Ok(responce);
+        //            }
+
+        //            return Ok(responce);
+        //        }
+        //        else
+        //        {
+        //            responce = @"{""StatusCode"":""400"",""Message"":""User not found"",""data"":" + responce + "}";
+
+        //            return BadRequest(responce);
+        //        }
+        //    }
+
+        //    catch (Exception ex)
+        //    {
+        //        Log.Information("error occurred :" + ex.Message);
+        //        responce = @"{""StatusCode"":""400"",""Message"":""" + "Bad Request ," + ex.Message.ToString() + @"""}";
+        //        return BadRequest(responce);
+        //    }
+
+        //}
+
         [HttpGet]
         [Route("VerifyUser")]
         public async Task<IActionResult> VerifyUser(string emailid)
@@ -248,16 +317,21 @@ namespace UsersService.Api.Controllers
             string callingMethod = APIConstant.CreateNotificationWithoutToken;
             TaskNotificationRequest taskNotificationRequest = new TaskNotificationRequest();
             MailResponse mailresponse = new MailResponse();
-            var userprincipal = await Username(emailid);
             string responce = string.Empty;
-            string rotp = Extensions.Getrandomnumber().ToString();
-            var result = await _mediator.Send(new UpdateOtpQuery(userprincipal.useremail, rotp));
             if (string.IsNullOrEmpty(emailid))
             {
-                responce = @"{""StatusCode"":""400"",""Message"":""" + "Username blank" + @""",""data"": [{""token"":""" + null + @"""}]}";
+                responce = @"{""StatusCode"":""400"",""Message"":""" + "Emailid blank" + @""",""data"": [{""token"":""" + null + @"""}]}";
                 return BadRequest(responce);
 
             }
+            var userprincipal = await Username(emailid);
+            if(string.IsNullOrEmpty(userprincipal.objid))
+            {
+                responce = @"{""StatusCode"":""400"",""Message"":""" + "Username blank" + @""",""data"": [{""token"":""" + null + @"""}]}";
+                return BadRequest(responce);
+            }
+            string rotp = Extensions.Getrandomnumber().ToString();
+            var result = await _mediator.Send(new UpdateOtpQuery(userprincipal.useremail, rotp));
             try
             {
                 UsersService.Api.Mail.MailService mailService = new UsersService.Api.Mail.MailService(_baseconfiguration, _dbContext);
