@@ -8,8 +8,8 @@ namespace UsersService.Infrastructure.EnumData
         CUSTOMER_REGISTRATION = 1,
         [Display(Name = "USER_REGISTRATION")]
         USER_REGISTRATION = 2,
-        [Display(Name = "FORGATE_PASSWORD")]
-        FORGATE_PASSWORD = 3,
+        [Display(Name = "FORGOT_PASSWORD")]
+        FORGOT_PASSWORD = 3,
         [Display(Name = "FAULTY_CHARGER")]
         FAULTY_CHARGER = 4,
     }
