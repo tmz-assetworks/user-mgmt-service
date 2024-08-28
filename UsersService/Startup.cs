@@ -75,15 +75,15 @@ namespace UsersService.Api
             services.AddDbContext<UsersService.Infrastructure.DBContext.DBContextCore>(m => m.UseSqlServer(connectionString), ServiceLifetime.Transient);
             services.AddAutoMapper(typeof(Startup));
             services.AddTransient<ICustomerRepository, CustomerRepository>();
-            services.AddMediatR(typeof(GetByIdCustomersHandler).GetTypeInfo().Assembly);
-            services.AddMediatR(typeof(CreateUserHandler).GetTypeInfo().Assembly);
-            services.AddMediatR(typeof(CreateCustomerHandler).GetTypeInfo().Assembly);
-            services.AddMediatR(typeof(UpdateUserHandler).GetTypeInfo().Assembly);
-            services.AddMediatR(typeof(DeleteUserHandler).GetTypeInfo().Assembly);
+            services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(typeof(GetByIdCustomersHandler).GetTypeInfo().Assembly));
+            services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(typeof(CreateUserHandler).GetTypeInfo().Assembly));
+            services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(typeof(CreateCustomerHandler).GetTypeInfo().Assembly));
+            services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(typeof(UpdateUserHandler).GetTypeInfo().Assembly));
+            services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(typeof(DeleteUserHandler).GetTypeInfo().Assembly));
 
             services.AddScoped(typeof(Core.Repositories.Base.IRepository<>), typeof(Repository<>));
             services.AddTransient<IUserRepository, UsersRepository>();
-            services.AddMediatR(typeof(CustomerDDLHandler).GetTypeInfo().Assembly);
+            services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(typeof(CustomerDDLHandler).GetTypeInfo().Assembly));
             services.AddScoped<TokenBase>();
 
 
