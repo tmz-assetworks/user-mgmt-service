@@ -31,14 +31,6 @@ jobs:
 - job: PublishServiceArtifacts
   displayName: 'Publish Service Artifacts'
   steps:
-
-    # ensure the build agent is using .NET 6
-    - task: UseDotNet@2
-      displayName: 'Use .NET 6 SDK'
-      inputs:
-        packageType: sdk
-        version: 6.x
-        installationPath: $(Agent.ToolsDirectory)/dotnet
     
     # restore the api project
     - task: DotNetCoreCLI@2
