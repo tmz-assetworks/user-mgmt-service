@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-
 namespace UsersService.Infrastructure.DBContext
 {
     public class DBContextCore : DbContext
@@ -27,5 +26,17 @@ namespace UsersService.Infrastructure.DBContext
         public DbSet<UsersService.Core.Entities.RFIDReader> RFIDReaders { get; set; }
         public DbSet<UsersService.Core.Entities.Location> Locations { get; set; }
         public DbSet<UsersService.Core.Entities.EmailTemplate> EmailTemplate { get; set; }
+        public DbSet<UsersService.Core.Entities.SpecificTimeZone> TimeZones { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            builder.Entity<UsersService.Core.Entities.SpecificTimeZone>(SpecificTimeZone =>
+            {
+                SpecificTimeZone.ToTable("SpecificTimeZone");
+
+                SpecificTimeZone.Property(e => e.CreatedOn).HasColumnType("datetime").HasColumnName("CreatedOn");
+                SpecificTimeZone.Property(e => e.IsActive).HasColumnName("IsActive");
+            });
+        }
     }
 }

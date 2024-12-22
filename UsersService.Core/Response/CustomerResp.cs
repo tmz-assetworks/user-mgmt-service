@@ -39,6 +39,8 @@ namespace UsersService.Core.Response
         public string description { get; set; }
         public string zipCode { get; set; }
         public bool isActive { get; set; }
+        public int? TimeZoneID { get; set; }
+        public string? TimeZoneText { get; set; }
     }
     public class allcustomerbyID
     {
@@ -61,6 +63,8 @@ namespace UsersService.Core.Response
         public long assets { get; set; }
         public long users { get; set; }
         public bool isActive { get; set; }
+        public int? TimeZoneID { get; set; }
+        public string? TimeZoneText { get; set; }
     }
     public class CountryResponse
     {

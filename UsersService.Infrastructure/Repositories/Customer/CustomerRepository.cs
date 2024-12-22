@@ -21,12 +21,15 @@ namespace UsersService.Infrastructure.Repositories.Customer
             AllCustomerResp allCustomerResp = new AllCustomerResp();
             if (Custid != null && Custid != "")
             {
-               var result = (from m in _dbContext.Customers
+                var result = (from m in _dbContext.Customers
                               join country in _dbContext.Country
                               on m.CountryID equals country.Id
                               join state in _dbContext.State
                               on m.StateID equals state.Id
-                              where (m.Id== Convert.ToInt64(Custid))
+                              join d in _dbContext.TimeZones
+                              on m.TimeZoneID equals d.Id into detailsGroup
+                              from detail in detailsGroup.DefaultIfEmpty() // Ensures left join
+                              where (m.Id == Convert.ToInt64(Custid))
                               select new customerbyID
                               {
                                   Id = m.Id,
@@ -44,6 +47,8 @@ namespace UsersService.Infrastructure.Repositories.Customer
                                   StateID = state.Id,
                                   stateName = state.stateName,
                                   cityName = m.CityName == null ? "" : m.CityName,
+                                  TimeZoneID = detail == null ? 0 : detail.Id,
+                                  TimeZoneText = detail == null ? "" : detail.TimeZoneText,
                               }).FirstOrDefault();
                 if (result != null)
                 {
@@ -63,13 +68,16 @@ namespace UsersService.Infrastructure.Repositories.Customer
             }
             else
             {
-               var result = (from m in _dbContext.Customers
+                var result = (from m in _dbContext.Customers
                               join country in _dbContext.Country
                               on m.CountryID equals country.Id
                               join state in _dbContext.State
                               on m.StateID equals state.Id
                               join u in _dbContext.Users
                               on m.Id equals u.CustomerID
+                              join d in _dbContext.TimeZones
+                              on m.TimeZoneID equals d.Id into detailsGroup
+                              from detail in detailsGroup.DefaultIfEmpty() // Ensures left join
                               where (u.ObjectId == _tokenbase.getcustomerId())
                               select new customerbyID
                               {
@@ -88,6 +96,9 @@ namespace UsersService.Infrastructure.Repositories.Customer
                                   StateID = state.Id,
                                   stateName = state.stateName,
                                   cityName = m.CityName == null ? "" : m.CityName,
+                                  TimeZoneID = detail == null ? 0 : detail.Id,
+                                  TimeZoneText = detail == null ? "" : detail.TimeZoneText,
+
                               }).FirstOrDefault();
                 if (result != null)
                 {
@@ -104,7 +115,7 @@ namespace UsersService.Infrastructure.Repositories.Customer
                     allCustomerResp.StatusMessage = "Record not Found";
                     allCustomerResp.data = null;
                 }
-            }          
+            }
             return allCustomerResp;
         }
         public async Task<AllCustomersResponse> GetAllCustomers(GetAllCustomerRequest getAllCustomerRequest)
@@ -122,6 +133,9 @@ namespace UsersService.Infrastructure.Repositories.Customer
                           on m.CountryID equals country.Id
                           join state in _dbContext.State
                           on m.StateID equals state.Id
+                          join d in _dbContext.TimeZones
+                          on m.TimeZoneID equals d.Id into detailsGroup
+                          from detail in detailsGroup.DefaultIfEmpty() // Ensures left join
                           select new allcustomerbyID
                           {
                               Id = m.Id,
@@ -135,14 +149,16 @@ namespace UsersService.Infrastructure.Repositories.Customer
                               CountryID = country.Id,
                               countryName = country.countryName,
                               StateID = state.Id,
-                              cityName = m.CityName==null?"": m.CityName,
+                              cityName = m.CityName == null ? "" : m.CityName,
                               stateName = state.stateName,
                               zipCode = m.zipCode,
                               noofevcharger = nocharger,//_dbContext.Dispenser.Count(),
-                              assets = padsCounts + modemCounts + cableCounts + powerCapinateCounts + rfIdReaerCounts+ switchGearCount,
+                              assets = padsCounts + modemCounts + cableCounts + powerCapinateCounts + rfIdReaerCounts + switchGearCount,
                               users = _dbContext.Users.Count(),
                               isActive = m.isActive,
                               modifiedOn = m.modifiedOn,
+                              TimeZoneID = detail == null ? 0 : detail.Id,
+                              TimeZoneText = detail == null ? "" : detail.TimeZoneText,
                           }).ToList<allcustomerbyID>();
             result = result != null ? result.OrderByDescending(x => x.modifiedOn).ToList() : result;
             allCustomerResp.InActive = result.Where(m => m.isActive == false).Count();

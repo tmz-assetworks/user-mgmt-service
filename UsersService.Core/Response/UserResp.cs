@@ -114,6 +114,7 @@ namespace UsersService.Core.Response
         public string stateName { get; set; }
         public string cityName { get; set; }
         public string zipcode { get; set; }
+        public string? Timezone { get; set; }
     }
     public partial class UpdateUserProfilePicture
     {
