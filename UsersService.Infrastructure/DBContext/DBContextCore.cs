@@ -28,9 +28,9 @@ namespace UsersService.Infrastructure.DBContext
         public DbSet<UsersService.Core.Entities.EmailTemplate> EmailTemplate { get; set; }
         public DbSet<UsersService.Core.Entities.SpecificTimeZone> TimeZones { get; set; }
 
-        protected override void OnModelCreating(ModelBuilder builder)
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            builder.Entity<UsersService.Core.Entities.SpecificTimeZone>(SpecificTimeZone =>
+            modelBuilder.Entity<UsersService.Core.Entities.SpecificTimeZone>(SpecificTimeZone =>
             {
                 SpecificTimeZone.ToTable("SpecificTimeZone");
 
