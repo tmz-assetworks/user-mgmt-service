@@ -389,6 +389,9 @@ namespace UsersService.Infrastructure.Repositories.Assets
                           on m.CountryID equals country.Id
                           join state in _dbContext.State
                           on m.StateID equals state.Id
+                          join d in _dbContext.TimeZones
+                          on m.Customer.TimeZoneID equals d.Id into detailsGroup
+                          from detail in detailsGroup.DefaultIfEmpty()
                           where (m.ObjectId == _tokenbase.getobjectid())
                           select new GetUserProfileResponse
                           {
@@ -406,6 +409,7 @@ namespace UsersService.Infrastructure.Repositories.Assets
                               zipcode = m.ZipCode,
                               ImagePath = m.ImagePath,
                               NotificationEnable = m.NotificationEnable,
+                              Timezone = detail == null ? "" : detail.Times,
                           }).FirstOrDefault();
 
             if (result != null)
