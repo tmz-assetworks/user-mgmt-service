@@ -18,5 +18,6 @@ namespace UsersService.Application.Commands.Customer
         public string CityName { get; set; }
         public string ZipCode { get; set; }
         public string ModifiedBy { get; set; }
+        public int? TimeZoneID { get; set; }
     }
 }

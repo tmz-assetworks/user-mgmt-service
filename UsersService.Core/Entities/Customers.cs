@@ -92,7 +92,9 @@ namespace UsersService.Core.Entities
         [DataMember(Name = "isActive", EmitDefaultValue = true)]
         [DefaultValue(true)] 
         public bool isActive { get; set; }
-       
+
+        public int? TimeZoneID {  get; set; }
+
         //public virtual IEnumerable<Users>? UsersList { get; set; }
     }
 

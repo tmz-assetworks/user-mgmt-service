@@ -69,7 +69,7 @@ namespace UsersService.Api.Controllers.Tests
                     {"AzureAd:clientSecret","xg.8Q~mpJZWo5su4_WIKRaVaydfHP99xFa15uak_"},
                     {"AzureAd:Instance","https://login.microsoftonline.com/"},
                     {"EncryptDecryptkey","E534C8DF286CD5931069B522E695D4F1" },
-                    {"Jwt:Key","ThisismySecretKey"},
+                    {"Jwt:Key","ThisismySecretKeyForAuthentication"},
                     {"Jwt:Issuer", "Asset_AuthService"},
                     {"Jwt:Audience", "Asset_DashboardService"},
                     {"flag:Emailflag", "0"},
