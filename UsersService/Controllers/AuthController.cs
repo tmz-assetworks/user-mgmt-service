@@ -1,8 +1,8 @@
-
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Graph;
+using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
@@ -38,6 +38,7 @@ namespace UsersService.Api.Controllers
         protected readonly UsersService.Infrastructure.DBContext.DBContextCore _dbContext;
         private static Random random = new Random();
         string JSONString = String.Empty;
+        private readonly IConfidentialClientApplication _capp;
 
         string getjson(object res)
         {
@@ -77,11 +78,16 @@ namespace UsersService.Api.Controllers
                     {"MailSettings:Host", Environment.GetEnvironmentVariable("MAIL_HOST")},
                     {"MailSettings:Port", Environment.GetEnvironmentVariable("MAIL_PORT")},
                     {"BaseUrl:fronendurl", Environment.GetEnvironmentVariable("BASEURL_FRONTED")},
-                    {"AzureAd:helpdeskUserName", Environment.GetEnvironmentVariable("AZUREAD_HELPDESKUSERNAME")},
-                    {"AzureAd:helpdeskPassword", Environment.GetEnvironmentVariable("AZUREAD_HELPDESKPASSWORD")},
                 };
             if (Environment.GetEnvironmentVariable("AZUREAD_CID") != null)
                 _baseconfiguration = new ConfigurationBuilder().AddInMemoryCollection(myConfiguration).Build();
+
+            var authority = $"https://login.microsoftonline.com/{this._baseconfiguration["AzureAd:TenantId"]}/v2.0";
+            _capp = ConfidentialClientApplicationBuilder
+            .Create(_baseconfiguration["AzureAd:clientId"])
+            .WithClientSecret(_baseconfiguration["AzureAd:clientSecret"])
+            .WithAuthority(authority)
+            .Build();
         }
 
         [HttpPost]
@@ -99,7 +105,7 @@ namespace UsersService.Api.Controllers
                 var userprincipal = await Username(emailid);
                 HttpClient httpClient = new HttpClient();
                 StringContent stringContent = new StringContent(System.Text.Json.JsonSerializer.Serialize<String>(""), Encoding.UTF8, "application/json");
-                httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAdminAccessToken()));
+                httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAdminAccessToken().Result));
                 HttpResponseMessage httpResponseMessage = await httpClient.PostAsync(string.Concat("https://graph.microsoft.com/v1.0/users/", userprincipal.useremail + "/revokeSignInSessions"), stringContent);
 
                 str = await httpResponseMessage.Content.ReadAsStringAsync();
@@ -156,7 +162,7 @@ namespace UsersService.Api.Controllers
                     userN.passwordProfile = passwordProfile;
                     HttpClient httpClient = new HttpClient();
                     StringContent stringContent = new StringContent(System.Text.Json.JsonSerializer.Serialize<UserNModel>(userN), Encoding.UTF8, "application/json");
-                    httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAdminAccessToken()));
+                    httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAdminAccessToken().Result));
                     HttpResponseMessage httpResponseMessage = await httpClient.PatchAsync(string.Concat("https://graph.microsoft.com/v1.0/users/", objemail), stringContent);
 
                     str = await httpResponseMessage.Content.ReadAsStringAsync();
@@ -205,7 +211,7 @@ namespace UsersService.Api.Controllers
                 if (OTP == result.otp)
                 {
                     HttpClient httpClient = new HttpClient();
-                    httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAccessToken()));
+                    httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAccessToken().Result));
                     HttpResponseMessage httpResponseMessage = await httpClient.GetAsync(string.Concat("https://graph.microsoft.com/v1.0/users/", userprincipal.useremail));
                     Microsoft.AspNetCore.Mvc.Formatters.MediaTypeCollection myContentTypes = new Microsoft.AspNetCore.Mvc.Formatters.MediaTypeCollection { System.Net.Mime.MediaTypeNames.Application.Json };
                     string str = await httpResponseMessage.Content.ReadAsStringAsync();
@@ -338,7 +344,7 @@ namespace UsersService.Api.Controllers
                 mailresponse = mailService.SendEmailUserVerify(emailid, rotp, userprincipal.name);
                 HttpClient httpClient = new HttpClient();
                 // StringContent stringContent = new StringContent(JsonSerializer.Serialize<UserNModel>(userN), Encoding.UTF8, "application/json");
-                httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAccessToken()));
+                httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAccessToken().Result));
                 HttpResponseMessage httpResponseMessage = await httpClient.GetAsync(string.Concat("https://graph.microsoft.com/v1.0/users/", userprincipal.useremail));
                 //------insert notification-------------
                 taskNotificationRequest.category = "Email";
@@ -385,8 +391,8 @@ namespace UsersService.Api.Controllers
         [HttpPost]
         [AllowAnonymous]
         public async Task<IActionResult> Post([FromBody] AuthModel authparam)
-        {            
-			var userprincipal = await Username(authparam.username);
+        {
+            var userprincipal = await Username(authparam.username);
             string responce = string.Empty;
             if (string.IsNullOrEmpty(authparam.username) || string.IsNullOrEmpty(authparam.password))
             {
@@ -401,7 +407,7 @@ namespace UsersService.Api.Controllers
                     string TenantId = this._baseconfiguration["AzureAd:TenantId"];
                     string clientsecret = this._baseconfiguration["AzureAd:clientSecret"];
                     HttpClient httpClient = new HttpClient();
-                    httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", this.GetAccessToken()));
+                    httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAccessToken().Result));
                     string str1 = string.Concat("https://login.microsoftonline.com/", TenantId, "/oauth2/token?api-version=1.0");
                     List<KeyValuePair<string, string>> list = new List<KeyValuePair<string, string>>();
                     list.Add(new KeyValuePair<string, string>("resource", clientid));
@@ -472,9 +478,9 @@ namespace UsersService.Api.Controllers
                 responce = @"{""StatusCode"":""400"",""Message"":""" + "Bad Request" + @""",""data"": [{""token"":""" + null + @"""}]}";
                 return BadRequest(responce);
             }
-        }
+        }   
 
-		[HttpPost]
+        [HttpPost]
 		[AllowAnonymous]
 		[Route("Auth")]
 		public async Task<IActionResult> Auth([FromBody] AuthModel authparam)
@@ -494,7 +500,7 @@ namespace UsersService.Api.Controllers
 					string TenantId = this._baseconfiguration["AzureAd:TenantId"];
 					string clientsecret = this._baseconfiguration["AzureAd:clientSecret"];
 					HttpClient httpClient = new HttpClient();
-					httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", this.GetAccessToken()));
+					httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAccessToken().Result));
 					string str1 = string.Concat("https://login.microsoftonline.com/", TenantId, "/oauth2/token?api-version=1.0");
 					List<KeyValuePair<string, string>> list = new List<KeyValuePair<string, string>>();
 					list.Add(new KeyValuePair<string, string>("resource", clientid));
@@ -584,7 +590,7 @@ namespace UsersService.Api.Controllers
                 string TenantId = this._baseconfiguration["AzureAd:TenantId"];
                 string clientsecret = this._baseconfiguration["AzureAd:clientSecret"];
                 HttpClient httpClient = new HttpClient();
-                httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", this.GetAccessToken()));
+                httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAccessToken().Result));
                 string str1 = string.Concat("https://login.microsoftonline.com/", TenantId, "/oauth2/token?api-version=1.0");
                 List<KeyValuePair<string, string>> list = new List<KeyValuePair<string, string>>();
                 list.Add(new KeyValuePair<string, string>("resource", clientid));
@@ -633,24 +639,18 @@ namespace UsersService.Api.Controllers
         }
         [ApiExplorerSettings(IgnoreApi = true)]
         [NonAction]
-        public string GetAccessToken()
+        public async Task<string> GetAccessToken()
         {
-            string accessToken;
-            string context = "https://login.microsoftonline.com/" + this._baseconfiguration["AzureAd:TenantId"];
-            string resource = "https://graph.microsoft.com";
-            string clientId = _baseconfiguration["AzureAd:clientId"];
-            ClientCredential clientCredential = new ClientCredential(clientId, this._baseconfiguration["AzureAd:clientSecret"]);
-            AuthenticationContext authenticationContext = new AuthenticationContext(context);
+            string accessToken=string.Empty;
             try
             {
-                string accessToken1 = authenticationContext.AcquireTokenAsync(resource, clientCredential).Result.AccessToken;
-                accessToken = accessToken1;
+                string[] scopes = new string[] { "https://graph.microsoft.com/.default" };
+                Microsoft.Identity.Client.AuthenticationResult tokenresult = await _capp.AcquireTokenForClient(scopes).ExecuteAsync();
+                accessToken = tokenresult.AccessToken;
             }
             catch (Exception exception)
             {
-                Log.Information("error occurred :" + exception.Message);
-                authenticationContext = new AuthenticationContext(context);
-                accessToken = this.GetAccessToken();
+                Log.Information("error occurred in token access :" + exception.Message);
             }
             return accessToken;
         }
@@ -673,40 +673,37 @@ namespace UsersService.Api.Controllers
                 signingCredentials: credentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
-        }
+        }        
         [ApiExplorerSettings(IgnoreApi = true)]
         [NonAction]
-        public string GetAdminAccessToken()
+        public async Task<string> GetAdminAccessToken()
         {
-            string item = this._baseconfiguration["AzureAd:clientId"];
-            string str = this._baseconfiguration["AzureAd:TenantId"];
-            string item1 = this._baseconfiguration["AzureAd:clientSecret"];
-            HttpClient httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", this.GetAccessToken()));
-            string str1 = string.Concat("https://login.microsoftonline.com/", str, "/oauth2/token?api-version=1.0");
-            List<KeyValuePair<string, string>> list = new List<KeyValuePair<string, string>>();
-            list.Add(new KeyValuePair<string, string>("resource", "https://graph.microsoft.com"));
-            list.Add(new KeyValuePair<string, string>("client_id", item));
-            list.Add(new KeyValuePair<string, string>("client_secret", item1));
-            list.Add(new KeyValuePair<string, string>("grant_type", "password"));
-            list.Add(new KeyValuePair<string, string>("username", this._baseconfiguration["AzureAd:helpdeskUserName"]));
-            list.Add(new KeyValuePair<string, string>("password", this._baseconfiguration["AzureAd:helpdeskPassword"]));
-            list.Add(new KeyValuePair<string, string>("scope", item + "/.default"));
-            List<KeyValuePair<string, string>> list1 = list;
-            FormUrlEncodedContent formUrlEncodedContent = new FormUrlEncodedContent(list1);
-            HttpResponseMessage result = httpClient.PostAsync(str1, formUrlEncodedContent).Result;
-            string response = string.Empty;
-            if (result.IsSuccessStatusCode)
+            var Tenant_Id = _baseconfiguration["AzureAd:TenantId"];
+            var Client_Id = _baseconfiguration["AzureAd:clientId"];
+            var Client_Secret = _baseconfiguration["AzureAd:clientSecret"];
+            using (var client = new HttpClient())
             {
-                response = result.Content.ReadAsStringAsync().Result;
-                JObject jObj = JObject.Parse(response);
-                response = jObj["access_token"].ToString();
-
+                var token_Endpoint = $"https://login.microsoftonline.com/{Tenant_Id}/oauth2/v2.0/token";
+                var form_Data = new Dictionary<string, string>
+                {
+                    { "grant_type", "client_credentials" },
+                    { "client_id", Client_Id },
+                    { "client_secret", Client_Secret },
+                    { "scope", "https://graph.microsoft.com/.default" }
+                };
+                var form_content = new FormUrlEncodedContent(form_Data);
+                var tokenResponse = await client.PostAsync(token_Endpoint, form_content);
+                var tokenResponseString = await tokenResponse.Content.ReadAsStringAsync();
+                if (!tokenResponse.IsSuccessStatusCode)
+                {
+                    return string.Empty;
+                }
+                var json = JObject.Parse(tokenResponseString);
+                return json["access_token"].ToString();
             }
-            string str2 = response;
-
-            return str2;
         }
+        
+
         [NonAction]
         public async Task<EmailResponse> Username(String usermail)
         {

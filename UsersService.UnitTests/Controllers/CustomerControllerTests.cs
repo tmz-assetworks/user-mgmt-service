@@ -55,8 +55,6 @@ namespace UsersService.Api.Controllers.Tests
                     {"MailSettings:Host", Environment.GetEnvironmentVariable("MAIL_HOST")},
                     {"MailSettings:Port", Environment.GetEnvironmentVariable("MAIL_PORT")},
                     {"BaseUrl:fronendurl", Environment.GetEnvironmentVariable("BASEURL_FRONTED")},
-                    {"AzureAd:helpdeskUserName", Environment.GetEnvironmentVariable("AZUREAD_HELPDESKUSERNAME")},
-                    {"AzureAd:helpdeskPassword", Environment.GetEnvironmentVariable("AZUREAD_HELPDESKPASSWORD")},
                 };
             if (Environment.GetEnvironmentVariable("AZUREAD_CID") == null)
             {
