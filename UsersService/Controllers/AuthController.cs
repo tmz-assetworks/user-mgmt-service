@@ -679,7 +679,8 @@ namespace UsersService.Api.Controllers
             }
             catch(Exception ex)
             {
-                throw ex;
+                Log.Information("error occurred in TokenResponse :" + ex.Message);
+                throw ;
             }
         }
     }

@@ -186,8 +186,7 @@ namespace UsersService.Infrastructure.Repositories.Assets
                     ousers.ModifiedOn = DateTime.Now;
                     for (int i = 0; i < users.UserRoles.Count(); i++)
                     {
-                        //UserRoles oldUserrole = _dbContext.UserRoles.Find(users.UserRoles.ToList()[i].id);
-                        UserRoles oldUserrole = _dbContext.UserRoles.FirstOrDefault(ur => ur.UserID == users.UserRoles.ToList()[i].UserID && ur.RoleID == users.UserRoles.ToList()[i].RoleID);
+                        UserRoles oldUserrole = await _dbContext.UserRoles.FirstOrDefaultAsync(ur => ur.UserID == users.UserRoles.ToList()[i].UserID && ur.RoleID == users.UserRoles.ToList()[i].RoleID);
                         if (oldUserrole != null)
                         {
                             UserRoles newuser = users.UserRoles.ToList()[i];
@@ -348,12 +347,11 @@ namespace UsersService.Infrastructure.Repositories.Assets
 
         public async Task<long> GetUserRoleID(long UserID, long RoleID)
         {
-            var result = (from m in _dbContext.UserRoles
-                          where m.UserID == UserID && m.RoleID == RoleID
-                          select m.id).FirstOrDefault();
-            result = result == null ? 0 : result;
+            var result = await (from m in _dbContext.UserRoles
+                                where m.UserID == UserID && m.RoleID == RoleID
+                                select (long?)m.id).FirstOrDefaultAsync();
 
-            return result;
+            return result ?? 0;
         }
 
         public async Task<GetUserProfileResponseDT> GetByProfileUser()
