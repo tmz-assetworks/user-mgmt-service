@@ -73,74 +73,38 @@ namespace UsersService.Infrastructure.Repositories.Assets
         {
             AllUserResponse allUserResponse = new AllUserResponse();
             List<GetUserResponse> result = new List<GetUserResponse>();
-            if (_tokenbase.getrole().ToLower() == "admin")
-            {
-                result = (from m in _dbContext.Users
-                          join country in _dbContext.Country
-                          on m.CountryID equals country.Id
-                          join state in _dbContext.State
-                          on m.StateID equals state.Id
-                          join c in _dbContext.Customers
-                          on m.CustomerID equals c.Id
-                          join u in _dbContext.UserRoles
-                          on m.Id equals u.UserID
-                          where (u.RoleID == getUserRequest.roleid[0] && u.createdBy == _tokenbase.getobjectid())
-                          select new GetUserResponse
-                          {
-                              Id = m.Id,
-                              EmailId = m.EmailId,
-                              PhoneNumber = m.PhoneNumber,
-                              addressLine1 = m.AddressLine1,
-                              addressLine2 = m.AddressLine2,
-                              IsActive = m.IsActive,
-                              adminName = m.name,
-                              modifiedOn = m.ModifiedOn,
-                              customerID = m.CustomerID,
-                              customername = c.userName,
-                              CountryID = country.Id,
-                              countryName = country.countryName,
-                              StateID = state.Id,
-                              cityName = m.CityName == null ? "" : m.CityName,
-                              stateName = state.stateName,
-                              locationsName = String.Join(",", m.OperatorUserMapper.ToList().Join(_dbContext.Locations, a => a.LocationId, b => b.Id, (a, b) => b.LocationName)),
-                              locationsNameCount = m.OperatorUserMapper.ToList().Join(_dbContext.Locations, a => a.LocationId, b => b.Id, (a, b) => b.LocationName).Count(),
-                          })
+            result = (from m in _dbContext.Users
+                      join country in _dbContext.Country
+                      on m.CountryID equals country.Id
+                      join state in _dbContext.State
+                      on m.StateID equals state.Id
+                      join c in _dbContext.Customers
+                      on m.CustomerID equals c.Id
+                      join u in _dbContext.UserRoles
+                      on m.Id equals u.UserID
+                      where (u.RoleID == getUserRequest.roleid[0])
+                      select new GetUserResponse
+                      {
+                          Id = m.Id,
+                          EmailId = m.EmailId,
+                          PhoneNumber = m.PhoneNumber,
+                          addressLine1 = m.AddressLine1,
+                          addressLine2 = m.AddressLine2,
+                          IsActive = m.IsActive,
+                          adminName = m.name,
+                          modifiedOn = m.ModifiedOn,
+                          customerID = m.CustomerID,
+                          customername = c.userName,
+                          CountryID = country.Id,
+                          countryName = country.countryName,
+                          StateID = state.Id,
+                          cityName = m.CityName == null ? "" : m.CityName,
+                          stateName = state.stateName,
+                          locationsName = String.Join(",", m.OperatorUserMapper.ToList().Join(_dbContext.Locations, a => a.LocationId, b => b.Id, (a, b) => b.LocationName)),
+                          locationsNameCount = m.OperatorUserMapper.ToList().Join(_dbContext.Locations, a => a.LocationId, b => b.Id, (a, b) => b.LocationName).Count(),
+                      })
                     .ToList();
-            }
-            else
-            {
-                result = (from m in _dbContext.Users
-                          join country in _dbContext.Country
-                          on m.CountryID equals country.Id
-                          join state in _dbContext.State
-                          on m.StateID equals state.Id
-                          join c in _dbContext.Customers
-                          on m.CustomerID equals c.Id
-                          join u in _dbContext.UserRoles
-                          on m.Id equals u.UserID
-                          where (u.RoleID == getUserRequest.roleid[0])
-                          select new GetUserResponse
-                          {
-                              Id = m.Id,
-                              EmailId = m.EmailId,
-                              PhoneNumber = m.PhoneNumber,
-                              addressLine1 = m.AddressLine1,
-                              addressLine2 = m.AddressLine2,
-                              IsActive = m.IsActive,
-                              adminName = m.name,
-                              modifiedOn = m.ModifiedOn,
-                              customerID = m.CustomerID,
-                              customername = c.userName,
-                              CountryID = country.Id,
-                              countryName = country.countryName,
-                              StateID = state.Id,
-                              cityName = m.CityName == null ? "" : m.CityName,
-                              stateName = state.stateName,
-                              locationsName = String.Join(",", m.OperatorUserMapper.ToList().Join(_dbContext.Locations, a => a.LocationId, b => b.Id, (a, b) => b.LocationName)),
-                              locationsNameCount = m.OperatorUserMapper.ToList().Join(_dbContext.Locations, a => a.LocationId, b => b.Id, (a, b) => b.LocationName).Count(),
-                          })
-                                    .ToList();
-            }
+
             result = result != null ? result.OrderByDescending(x => x.modifiedOn).DistinctBy(p => new { p.Id }).ToList() : result.DistinctBy(p => new { p.Id }).ToList();
             allUserResponse.InActive = result.Where(m => m.IsActive == false).Count();
             allUserResponse.Active = result.Where(m => m.IsActive == true).Count();
@@ -222,7 +186,7 @@ namespace UsersService.Infrastructure.Repositories.Assets
                     ousers.ModifiedOn = DateTime.Now;
                     for (int i = 0; i < users.UserRoles.Count(); i++)
                     {
-                        UserRoles oldUserrole = _dbContext.UserRoles.Find(users.UserRoles.ToList()[i].id);
+                        UserRoles oldUserrole = await _dbContext.UserRoles.FirstOrDefaultAsync(ur => ur.UserID == users.UserRoles.ToList()[i].UserID && ur.RoleID == users.UserRoles.ToList()[i].RoleID);
                         if (oldUserrole != null)
                         {
                             UserRoles newuser = users.UserRoles.ToList()[i];
@@ -381,6 +345,15 @@ namespace UsersService.Infrastructure.Repositories.Assets
             return getEmailResponse;
         }
 
+        public async Task<long> GetUserRoleID(long UserID, long RoleID)
+        {
+            var result = await (from m in _dbContext.UserRoles
+                                where m.UserID == UserID && m.RoleID == RoleID
+                                select (long?)m.id).FirstOrDefaultAsync();
+
+            return result ?? 0;
+        }
+
         public async Task<GetUserProfileResponseDT> GetByProfileUser()
         {
             GetUserProfileResponseDT getUserResponseDT = new GetUserProfileResponseDT();
@@ -392,7 +365,7 @@ namespace UsersService.Infrastructure.Repositories.Assets
                           join d in _dbContext.TimeZones
                           on m.Customer.TimeZoneID equals d.Id into detailsGroup
                           from detail in detailsGroup.DefaultIfEmpty()
-                          where (m.ObjectId == _tokenbase.getobjectid())
+                          //where (m.ObjectId == _tokenbase.getobjectid())
                           select new GetUserProfileResponse
                           {
                               Id = m.Id,

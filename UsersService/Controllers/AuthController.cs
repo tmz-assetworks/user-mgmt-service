@@ -1,3 +1,5 @@
+using Azure;
+using Azure.Identity;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -392,6 +394,62 @@ namespace UsersService.Api.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Post([FromBody] AuthModel authparam)
         {
+            authparam.password = EncryptDecrypt.Decrypt(authparam.password, _baseconfiguration["EncryptDecryptkey"]);
+            return await Auth(authparam);
+        }
+
+        [ApiExplorerSettings(IgnoreApi = true)]
+        [NonAction]
+        public async Task ChangeUserAppRole()
+        {
+            // Azure AD App details
+            var utenantId = "";
+            var uclientId = "";
+            var uclientSecret = "";
+
+            var appId = ""; // Service principal ID
+            var userId = ""; // Azure AD user object ID
+            var newAppRoleId = ""; // The GUID of the "Admin" app role
+
+            var credential = new ClientSecretCredential(
+            utenantId, uclientId, uclientSecret
+        );
+
+            var graphClient = new GraphServiceClient(credential);
+
+            // 1. Remove existing app role assignments
+            var existingAssignments = await graphClient.Users[userId].AppRoleAssignments
+                .Request()
+                .Filter($"resourceId eq {appId}")
+                .GetAsync();
+
+            foreach (var assignment in existingAssignments)
+            {
+                await graphClient.Users[userId].AppRoleAssignments[assignment.Id]
+                    .Request()
+                    .DeleteAsync();
+            }
+
+            // 2. Assign new role
+            var newAssignment = new AppRoleAssignment
+            {
+                PrincipalId = Guid.Parse(userId),
+                ResourceId = Guid.Parse(appId),
+                AppRoleId = Guid.Parse(newAppRoleId)
+            };
+
+            await graphClient.Users[userId].AppRoleAssignments
+                .Request()
+                .AddAsync(newAssignment);
+
+            Console.WriteLine("User's app role changed successfully.");
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [Route("Auth")]
+        public async Task<IActionResult> Auth([FromBody] AuthModel authparam)
+        {
             var userprincipal = await Username(authparam.username);
             string responce = string.Empty;
             if (string.IsNullOrEmpty(authparam.username) || string.IsNullOrEmpty(authparam.password))
@@ -415,7 +473,7 @@ namespace UsersService.Api.Controllers
                     list.Add(new KeyValuePair<string, string>("client_secret", clientsecret));
                     list.Add(new KeyValuePair<string, string>("grant_type", "password"));
                     list.Add(new KeyValuePair<string, string>("username", userprincipal.useremail));
-                    list.Add(new KeyValuePair<string, string>("password", EncryptDecrypt.Decrypt(authparam.password, _baseconfiguration["EncryptDecryptkey"])));
+                    list.Add(new KeyValuePair<string, string>("password", authparam.password));
                     list.Add(new KeyValuePair<string, string>("scope", "openid User.Read"));
                     List<KeyValuePair<string, string>> list1 = list;
                     FormUrlEncodedContent formUrlEncodedContent = new FormUrlEncodedContent(list1);
@@ -423,25 +481,8 @@ namespace UsersService.Api.Controllers
 
                     if (result.IsSuccessStatusCode)
                     {
-
                         responce = result.Content.ReadAsStringAsync().Result;
-
-                        JObject jObj = JObject.Parse(responce);
-
-                        AuthResponce res = new AuthResponce()
-                        {
-                            StatusCode = 200,
-                            Message = "Login Success",
-                            data = new List<AuthData>() {
-                              new AuthData() {
-                              access_token=jObj["access_token"].ToString(),
-                              id_token= jObj["id_token"].ToString(),
-                              refresh_token=jObj["refresh_token"].ToString(),
-                              resource="tokenString",
-                              token_type="Bearer"
-                              }
-                              }
-                        };
+                        var res = TokenResponse(responce);
                         return Ok(res);
                     }
                     else
@@ -478,103 +519,10 @@ namespace UsersService.Api.Controllers
                 responce = @"{""StatusCode"":""400"",""Message"":""" + "Bad Request" + @""",""data"": [{""token"":""" + null + @"""}]}";
                 return BadRequest(responce);
             }
-        }   
+        }
 
-        [HttpPost]
-		[AllowAnonymous]
-		[Route("Auth")]
-		public async Task<IActionResult> Auth([FromBody] AuthModel authparam)
-		{
-			var userprincipal = await Username(authparam.username);
-			string responce = string.Empty;
-			if (string.IsNullOrEmpty(authparam.username) || string.IsNullOrEmpty(authparam.password))
-			{
-				responce = @"{""StatusCode"":""400"",""Message"":""" + "UserName or Password are blank" + @""",""data"": [{""token"":""" + null + @"""}]}";
-				return BadRequest(responce);
-			}
-			try
-			{
-				if (userprincipal.isActive == true)
-				{
-					string clientid = this._baseconfiguration["AzureAd:clientId"];
-					string TenantId = this._baseconfiguration["AzureAd:TenantId"];
-					string clientsecret = this._baseconfiguration["AzureAd:clientSecret"];
-					HttpClient httpClient = new HttpClient();
-					httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAccessToken().Result));
-					string str1 = string.Concat("https://login.microsoftonline.com/", TenantId, "/oauth2/token?api-version=1.0");
-					List<KeyValuePair<string, string>> list = new List<KeyValuePair<string, string>>();
-					list.Add(new KeyValuePair<string, string>("resource", clientid));
-					list.Add(new KeyValuePair<string, string>("client_id", clientid));
-					list.Add(new KeyValuePair<string, string>("client_secret", clientsecret));
-					list.Add(new KeyValuePair<string, string>("grant_type", "password"));
-					list.Add(new KeyValuePair<string, string>("username", userprincipal.useremail));
-					list.Add(new KeyValuePair<string, string>("password", authparam.password));
-					list.Add(new KeyValuePair<string, string>("scope", "openid User.Read"));
-					List<KeyValuePair<string, string>> list1 = list;
-					FormUrlEncodedContent formUrlEncodedContent = new FormUrlEncodedContent(list1);
-					HttpResponseMessage result = httpClient.PostAsync(str1, formUrlEncodedContent).Result;
-
-					if (result.IsSuccessStatusCode)
-					{
-
-						responce = result.Content.ReadAsStringAsync().Result;
-
-						JObject jObj = JObject.Parse(responce);
-
-						AuthResponce res = new AuthResponce()
-						{
-							StatusCode = 200,
-							Message = "Login Success",
-							data = new List<AuthData>() {
-							  new AuthData() {
-							  access_token=jObj["access_token"].ToString(),
-							  id_token= jObj["id_token"].ToString(),
-							  refresh_token=jObj["refresh_token"].ToString(),
-							  resource="tokenString",
-							  token_type="Bearer"
-							  }
-							  }
-						};
-						return Ok(res);
-					}
-					else
-					{
-						responce = result.Content.ReadAsStringAsync().Result;
-						string errorMessage = "";
-						try
-						{
-							errorMessage = JObject.Parse(responce)["error_codes"].ToString();
-						}
-						catch (Exception ex) { }
-
-						if (errorMessage.Contains("50126"))
-						{
-							errorMessage = "Invalid password";
-						}
-						else if (errorMessage.Contains("50034"))
-						{
-							errorMessage = "Invalid Username";
-						}
-						responce = @"{""StatusCode"":""" + result.StatusCode.ToString() + @""",""Message"":""" + errorMessage + @""",""data"":" + responce + "}";
-						return StatusCode((int)result.StatusCode, responce);
-					}
-				}
-				else
-				{
-					responce = @"{""StatusCode"":""" + 400 + @""",""Message"":""" + "User InActive" + @""",""data"":" + responce + "}";
-					return BadRequest(responce);
-				}
-			}
-			catch (Exception ex)
-			{
-				Log.Information("error occurred :" + ex.Message);
-				responce = @"{""StatusCode"":""400"",""Message"":""" + "Bad Request" + @""",""data"": [{""token"":""" + null + @"""}]}";
-				return BadRequest(responce);
-			}
-		}
-
-		// POST api/<AuthController>
-		[HttpGet]
+        // POST api/<AuthController>
+        [HttpGet]
         [Route("AuthRefresh")]
         public async Task<IActionResult> AuthRefresh(string refreshToken)
         {
@@ -586,16 +534,16 @@ namespace UsersService.Api.Controllers
             }
             try
             {
-                string clientid = this._baseconfiguration["AzureAd:clientId"];
-                string TenantId = this._baseconfiguration["AzureAd:TenantId"];
-                string clientsecret = this._baseconfiguration["AzureAd:clientSecret"];
+                string rClientid = this._baseconfiguration["AzureAd:clientId"];
+                string rTenantId = this._baseconfiguration["AzureAd:TenantId"];
+                string rClientsecret = this._baseconfiguration["AzureAd:clientSecret"];
                 HttpClient httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAccessToken().Result));
-                string str1 = string.Concat("https://login.microsoftonline.com/", TenantId, "/oauth2/token?api-version=1.0");
+                string str1 = string.Concat("https://login.microsoftonline.com/", rTenantId, "/oauth2/token?api-version=1.0");
                 List<KeyValuePair<string, string>> list = new List<KeyValuePair<string, string>>();
-                list.Add(new KeyValuePair<string, string>("resource", clientid));
-                list.Add(new KeyValuePair<string, string>("client_id", clientid));
-                list.Add(new KeyValuePair<string, string>("client_secret", clientsecret));
+                list.Add(new KeyValuePair<string, string>("resource", rClientid));
+                list.Add(new KeyValuePair<string, string>("client_id", rClientid));
+                list.Add(new KeyValuePair<string, string>("client_secret", rClientsecret));
                 list.Add(new KeyValuePair<string, string>("grant_type", "refresh_token"));
                 list.Add(new KeyValuePair<string, string>("refresh_token", refreshToken));
                 list.Add(new KeyValuePair<string, string>("scope", "openid"));
@@ -606,21 +554,7 @@ namespace UsersService.Api.Controllers
                 if (result.IsSuccessStatusCode)
                 {
                     responce = result.Content.ReadAsStringAsync().Result;
-                    JObject jObj = JObject.Parse(responce);
-                    AuthResponce res = new AuthResponce()
-                    {
-                        StatusCode = 200,
-                        Message = "Login Success",
-                        data = new List<AuthData>() {
-                       new AuthData() {
-                      access_token=jObj["access_token"].ToString(),
-                       id_token= jObj["id_token"].ToString(),
-                       refresh_token=jObj["refresh_token"].ToString(),
-                       resource="tokenString",
-                       token_type="Bearer"
-                       }
-                       }
-                    };
+                    var res = TokenResponse(responce);
                     return Ok(res);
                 }
                 else
@@ -641,7 +575,7 @@ namespace UsersService.Api.Controllers
         [NonAction]
         public async Task<string> GetAccessToken()
         {
-            string accessToken=string.Empty;
+            string accessToken = string.Empty;
             try
             {
                 string[] scopes = new string[] { "https://graph.microsoft.com/.default" };
@@ -673,7 +607,7 @@ namespace UsersService.Api.Controllers
                 signingCredentials: credentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
-        }        
+        }
         [ApiExplorerSettings(IgnoreApi = true)]
         [NonAction]
         public async Task<string> GetAdminAccessToken()
@@ -702,7 +636,7 @@ namespace UsersService.Api.Controllers
                 return json["access_token"].ToString();
             }
         }
-        
+
 
         [NonAction]
         public async Task<EmailResponse> Username(String usermail)
@@ -719,6 +653,35 @@ namespace UsersService.Api.Controllers
                 JSONString = "{\n  \"data\" : " + null + ",  \"StatusMessage\" : " + ex.Message.ToString() + ",\n  \"StatusCode\" : " + (int)HttpStatusCode.NotFound + " \n}";
             }
             return EmailResponse;
+        }
+
+        [NonAction]
+        public AuthResponce TokenResponse(String responce)
+        {
+            try
+            {
+                JObject jObjr = JObject.Parse(responce);
+                AuthResponce res = new AuthResponce()
+                {
+                    StatusCode = 200,
+                    Message = "Login Success",
+                    data = new List<AuthData>() {
+                            new AuthData() {
+                                access_token=jObjr["access_token"].ToString(),
+                                id_token= jObjr["id_token"].ToString(),
+                                refresh_token=jObjr["refresh_token"].ToString(),
+                                resource="tokenString",
+                                token_type="Bearer"
+                            }
+                       }
+                };
+                return res;
+            }
+            catch(Exception ex)
+            {
+                Log.Information("error occurred in TokenResponse :" + ex.Message);
+                throw ;
+            }
         }
     }
 }
