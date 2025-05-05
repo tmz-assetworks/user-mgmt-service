@@ -51,13 +51,8 @@ namespace UsersService.Core.Entities
         [Column(TypeName = "nvarchar(255)")]
         public string AddressLine2 { get; set; }
 
-        [ForeignKey("CountryID")]
-        public virtual Country Country { get; set; }
         public long? CountryID { get; set; }
-        [ForeignKey("StateID")]
-
-        public virtual State State { get; set; }
-        public long StateID { get; set; }
+        public long? StateID { get; set; }
         //public virtual City City { get; set; }
         //public long CityID { get; set; }
 

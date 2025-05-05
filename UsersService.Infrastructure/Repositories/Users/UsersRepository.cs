@@ -27,9 +27,11 @@ namespace UsersService.Infrastructure.Repositories.Assets
             GetUserResponseDT getUserResponseDT = new GetUserResponseDT();
             var result = (from m in _dbContext.Users
                           join country in _dbContext.Country
-                          on m.CountryID equals country.Id
+                          on m.CountryID equals country.Id into countryJoin
+                          from country in countryJoin.DefaultIfEmpty()
                           join state in _dbContext.State
-                          on m.StateID equals state.Id
+                          on m.StateID equals state.Id into stateJoin
+                          from state in stateJoin.DefaultIfEmpty()
                           join c in _dbContext.Customers
                           on m.CustomerID equals c.Id
                           select new GetUserResponse
@@ -48,12 +50,12 @@ namespace UsersService.Infrastructure.Repositories.Assets
                               zipcode = m.ZipCode,
                               customerID = m.CustomerID,
                               customername = m.name,
-                              CountryID = country.Id,
-                              countryName = country.countryName,
-                              StateID = state.Id,
+                              CountryID = m.CountryID,
+                              countryName = country != null ? country.countryName : "",
+                              StateID = m.StateID,
                               locationsId = m.OperatorUserMapper.ToList().Select(r => r.LocationId).ToList<long>(),
                               cityName = m.CityName == null ? "" : m.CityName,
-                              stateName = state.stateName,
+                              stateName = state != null ? state.stateName : "",
                           }).Where(x => x.Id == userid).FirstOrDefault();
             if (result != null)
             {
@@ -73,35 +75,37 @@ namespace UsersService.Infrastructure.Repositories.Assets
         {
             AllUserResponse allUserResponse = new AllUserResponse();
             List<GetUserResponse> result = new List<GetUserResponse>();
-            result = (from m in _dbContext.Users
+            result = (from us in _dbContext.Users
                       join country in _dbContext.Country
-                      on m.CountryID equals country.Id
+                      on us.CountryID equals country.Id into countryjoin
+                      from country in countryjoin.DefaultIfEmpty()
                       join state in _dbContext.State
-                      on m.StateID equals state.Id
+                      on us.StateID equals state.Id into statejoin
+                      from state in statejoin.DefaultIfEmpty()
                       join c in _dbContext.Customers
-                      on m.CustomerID equals c.Id
+                      on us.CustomerID equals c.Id
                       join u in _dbContext.UserRoles
-                      on m.Id equals u.UserID
+                      on us.Id equals u.UserID
                       where (u.RoleID == getUserRequest.roleid[0])
                       select new GetUserResponse
                       {
-                          Id = m.Id,
-                          EmailId = m.EmailId,
-                          PhoneNumber = m.PhoneNumber,
-                          addressLine1 = m.AddressLine1,
-                          addressLine2 = m.AddressLine2,
-                          IsActive = m.IsActive,
-                          adminName = m.name,
-                          modifiedOn = m.ModifiedOn,
-                          customerID = m.CustomerID,
+                          Id = us.Id,
+                          EmailId = us.EmailId,
+                          PhoneNumber = us.PhoneNumber,
+                          addressLine1 = us.AddressLine1,
+                          addressLine2 = us.AddressLine2,
+                          IsActive = us.IsActive,
+                          adminName = us.name,
+                          modifiedOn = us.ModifiedOn,
+                          customerID = us.CustomerID,
                           customername = c.userName,
-                          CountryID = country.Id,
-                          countryName = country.countryName,
-                          StateID = state.Id,
-                          cityName = m.CityName == null ? "" : m.CityName,
-                          stateName = state.stateName,
-                          locationsName = String.Join(",", m.OperatorUserMapper.ToList().Join(_dbContext.Locations, a => a.LocationId, b => b.Id, (a, b) => b.LocationName)),
-                          locationsNameCount = m.OperatorUserMapper.ToList().Join(_dbContext.Locations, a => a.LocationId, b => b.Id, (a, b) => b.LocationName).Count(),
+                          CountryID = us.CountryID,
+                          countryName = country != null ? country.countryName : "",
+                          StateID = us.StateID,
+                          cityName = us.CityName == null ? "" : us.CityName,
+                          stateName = state != null ? state.stateName : "",
+                          locationsName = String.Join(",", us.OperatorUserMapper.ToList().Join(_dbContext.Locations, a => a.LocationId, b => b.Id, (a, b) => b.LocationName)),
+                          locationsNameCount = us.OperatorUserMapper.ToList().Join(_dbContext.Locations, a => a.LocationId, b => b.Id, (a, b) => b.LocationName).Count(),
                       })
                     .ToList();
 
