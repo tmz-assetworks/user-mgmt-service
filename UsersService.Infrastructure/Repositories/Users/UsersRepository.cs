@@ -369,7 +369,7 @@ namespace UsersService.Infrastructure.Repositories.Assets
                           join d in _dbContext.TimeZones
                           on m.Customer.TimeZoneID equals d.Id into detailsGroup
                           from detail in detailsGroup.DefaultIfEmpty()
-                          //where (m.ObjectId == _tokenbase.getobjectid())
+                          where (m.ObjectId == _tokenbase.getobjectid())
                           select new GetUserProfileResponse
                           {
                               Id = m.Id,
