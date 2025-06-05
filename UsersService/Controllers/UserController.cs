@@ -254,12 +254,22 @@ namespace UsersService.Api.Controllers
                         return BadRequest(responce);
                     }
                     AssignRoleModel assignRole1 = new AssignRoleModel();
-                    assignRole1.resourceId = _baseconfiguration["AzureAd:resourceId"];//
+                    assignRole1.resourceId = _baseconfiguration["AzureAd:resourceId"];
                     assignRole1.principalId = responseobjectid;
-                    assignRole1.appRoleId = _baseconfiguration["AzureAd:operatorRoleId"];
-                    if (_tokenBase.getrole().ToLower() != "admin")
-                        assignRole1.appRoleId = _baseconfiguration["AzureAd:adminRoleId"];
+                    var userRole = command.UserRolesCommand;
+                    string userRoleName = _tokenBase.getrole();
 
+                    bool isAdmin = string.Equals(userRoleName, "admin", StringComparison.OrdinalIgnoreCase);
+                    bool isSuperAdmin = string.Equals(userRoleName, "superadmin", StringComparison.OrdinalIgnoreCase);
+
+                    if ((isAdmin || isSuperAdmin) && userRole[0].Roleid != 4)
+                    {
+                        assignRole1.appRoleId = _baseconfiguration["AzureAd:adminRoleId"];
+                    }
+                    else if (isAdmin && userRole[0].Roleid == 4)
+                    {
+                        assignRole1.appRoleId = _baseconfiguration["AzureAd:operatorRoleId"];
+                    }
                     StringContent stringRoleContent = new StringContent(System.Text.Json.JsonSerializer.Serialize<AssignRoleModel>(assignRole1), Encoding.UTF8, "application/json");
                     HttpResponseMessage httpResponseMessage = await httpClient.PostAsync("https://graph.microsoft.com/v1.0/users/" + responseobjectid + "/appRoleAssignments", stringRoleContent);
                     if (httpResponseMessage.IsSuccessStatusCode)
