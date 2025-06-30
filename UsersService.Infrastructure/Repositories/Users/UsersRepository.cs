@@ -257,13 +257,13 @@ namespace UsersService.Infrastructure.Repositories.Assets
         public async Task<otpdata> Getotp(string emailid, string Otp)
         {
             otpdata getotpdata = new otpdata();
-            var result = (from m in _dbContext.Users
-                          select new otpdata
-                          {
-                              email = m.UserPrincipalName,
-                              obectId = m.ObjectId,
-                              otp = m.Otp,
-                          }).Where(x => x.email == emailid && x.otp == Otp).FirstOrDefault();
+            var result = await (from m in _dbContext.Users
+                                select new otpdata
+                                {
+                                    email = m.UserPrincipalName,
+                                    obectId = m.ObjectId,
+                                    otp = m.Otp,
+                                }).Where(x => x.email.ToLower() == emailid.ToLower() && x.otp == Otp).FirstOrDefaultAsync();
             getotpdata = result;
             return getotpdata;
         }
