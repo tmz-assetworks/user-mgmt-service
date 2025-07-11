@@ -20,13 +20,13 @@ namespace UsersService.Api
                 containerName = MyConfig.GetValue<string>("LOG:CONNECTIONSTRING");
             }
             Log.Logger = new LoggerConfiguration()
-                 .WriteTo.Console().WriteTo.Debug(outputTemplate: DateTime.Now.ToString()).WriteTo.File("./logs/log-.txt", rollingInterval: RollingInterval.Day)
+                 .WriteTo.Console().WriteTo.Debug(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}").WriteTo.File("./logs/log-.txt", rollingInterval: RollingInterval.Day)
                  .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", Serilog.Events.LogEventLevel.Warning)
                  .WriteTo.AzureBlobStorage(connectionString, LogEventLevel.Information,
                         containerName, "{yyyy}{MM}{dd}.txt", null, false, TimeSpan.FromMinutes(1), null, true).CreateLogger();
             try
             {
-                Log.Information("Starting Portal-Service !");
+                Log.Information("Starting User Management Service !");
                 CreateHostBuilder(args).Build().Run();
             }
             catch (Exception ex)
@@ -39,7 +39,13 @@ namespace UsersService.Api
             }
         }
         public static IHostBuilder CreateHostBuilder(string[] args) =>
-             Host.CreateDefaultBuilder(args)
+             Host.CreateDefaultBuilder(args).UseSerilog()
+            .ConfigureLogging(logBuilder =>
+            {
+                logBuilder.ClearProviders();
+                logBuilder.AddConsole();
+                logBuilder.AddTraceSource("Information, ActivityTracing");
+            })
                  .ConfigureWebHostDefaults(webBuilder =>
                  {
                      webBuilder.UseStartup<Startup>()
