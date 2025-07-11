@@ -362,10 +362,12 @@ namespace UsersService.Infrastructure.Repositories.Assets
         {
             GetUserProfileResponseDT getUserResponseDT = new GetUserProfileResponseDT();
             var result = (from m in _dbContext.Users
-                          join country in _dbContext.Country
-                          on m.CountryID equals country.Id
-                          join state in _dbContext.State
-                          on m.StateID equals state.Id
+                          join c in _dbContext.Country
+                          on m.CountryID equals c.Id into countryjoin
+                          from country in countryjoin.DefaultIfEmpty()
+                          join s in _dbContext.State
+                          on m.StateID equals s.Id into statejoin
+                          from state in statejoin.DefaultIfEmpty()
                           join d in _dbContext.TimeZones
                           on m.Customer.TimeZoneID equals d.Id into detailsGroup
                           from detail in detailsGroup.DefaultIfEmpty()
@@ -378,11 +380,11 @@ namespace UsersService.Infrastructure.Repositories.Assets
                               PhoneNumber = m.PhoneNumber,
                               addressLine1 = m.AddressLine1,
                               addressLine2 = m.AddressLine2,
-                              CountryID = country.Id,
-                              countryName = country.countryName,
-                              StateID = state.Id,
+                              CountryID = country == null ? 0 : country.Id,
+                              countryName = country == null ? "" : country.countryName,
+                              StateID = state == null ? 0 : state.Id,                              
                               cityName = m.CityName == null ? "" : m.CityName,
-                              stateName = state.stateName,
+                              stateName = state == null ? "" : state.stateName,                              
                               zipcode = m.ZipCode,
                               ImagePath = m.ImagePath,
                               NotificationEnable = m.NotificationEnable,
