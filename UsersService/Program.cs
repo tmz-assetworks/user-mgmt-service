@@ -20,10 +20,15 @@ namespace UsersService.Api
                 containerName = MyConfig.GetValue<string>("LOG:CONNECTIONSTRING");
             }
             Log.Logger = new LoggerConfiguration()
-                 .WriteTo.Console().WriteTo.Debug(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}").WriteTo.File("./logs/log-.txt", rollingInterval: RollingInterval.Day)
-                 .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", Serilog.Events.LogEventLevel.Warning)
-                 .WriteTo.AzureBlobStorage(connectionString, LogEventLevel.Information,
-                        containerName, "{yyyy}{MM}{dd}.txt", null, false, TimeSpan.FromMinutes(1), null, true).CreateLogger();
+                .MinimumLevel.Information()
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+                .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
+                .MinimumLevel.Override("Microsoft.AspNetCore.Hosting.Diagnostics", LogEventLevel.Warning)
+                .MinimumLevel.Override("Microsoft.AspNetCore.Server.Kestrel", LogEventLevel.Warning)
+                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+                .WriteTo.Console().WriteTo.Debug(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}").WriteTo.File("./logs/log-.txt", rollingInterval: RollingInterval.Day)
+                .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", Serilog.Events.LogEventLevel.Warning)
+                .WriteTo.AzureBlobStorage(connectionString, LogEventLevel.Information, containerName, "{yyyy}{MM}{dd}.txt", null, false, TimeSpan.FromMinutes(1), null, true).CreateLogger();
             try
             {
                 Log.Information("Starting User Management Service !");
