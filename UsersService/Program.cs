@@ -56,6 +56,5 @@ namespace UsersService.Api
                      webBuilder.UseStartup<Startup>()
                      .UseUrls("http://*:6008");
                  });
-
     }
 }
