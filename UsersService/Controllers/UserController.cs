@@ -27,6 +27,7 @@ using Azure.Storage.Blobs.Models;
 using Newtonsoft.Json;
 using System.Dynamic;
 using Microsoft.Identity.Client;
+using Microsoft.EntityFrameworkCore;
 
 namespace UsersService.Api.Controllers
 {
@@ -93,7 +94,7 @@ namespace UsersService.Api.Controllers
             string accessToken = string.Empty;
             string[] scopes = new string[] { "https://graph.microsoft.com/.default" };
             try
-            {               
+            {
                 Microsoft.Identity.Client.AuthenticationResult result = await _app.AcquireTokenForClient(scopes).ExecuteAsync();
                 accessToken = result.AccessToken;
             }
@@ -197,6 +198,12 @@ namespace UsersService.Api.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<UserResponse>> CreateUser([FromBody] CreateUserCommand command)
         {
+            if (command == null)
+            {
+                return BadRequest(@"{""StatusCode"":""400"",""Message"":""Invalid request data""}");
+            }
+            UserResponse resp = new UserResponse();
+
             string userprincipal = "";
             _tokenBase.acces_token = HttpContext == null ? _tokenBase.acces_token : await HttpContext.GetTokenAsync("access_token");
             MailResponse mailresponse = new MailResponse();
@@ -208,7 +215,6 @@ namespace UsersService.Api.Controllers
                     userprincipal = command.name.ToString().Split(' ')[0].Trim() + "@" + this._baseconfiguration["AzureAd:Domain"];
                 else userprincipal = command.name + "@" + this._baseconfiguration["AzureAd:Domain"];
             }
-            UserResponse resp = new UserResponse();
             string responce = string.Empty;
             if (string.IsNullOrEmpty(command.DisplayName) || string.IsNullOrEmpty(userprincipal))
             {
@@ -299,7 +305,7 @@ namespace UsersService.Api.Controllers
                                 StringContent httpContent = new StringContent(JsonConvert.SerializeObject(taskNotificationRequest), Encoding.UTF8, "application/json");
                                 HttpResponseMessage response = await Helper.GetCallAssetWithBodyAuthAPIAsync(callingMethod, httpContent, _tokenBase.acces_token);
                             }
-                            catch(Exception ex)
+                            catch (Exception ex)
                             {
                                 Log.Information("error occurred :" + ex.Message);
                                 return Ok(resp);
@@ -322,12 +328,9 @@ namespace UsersService.Api.Controllers
                 else
                 {
                     responce = result.Content.ReadAsStringAsync().Result;
-                    string errorMessage = "";
-                    responce = @"{""StatusCode"":""" + result.StatusCode.ToString() + @""",""Message"":""" + errorMessage + @""",""data"":" + responce + "}";
-                    dynamic data1 = JObject.Parse(responce);
-                    string errormessage = "User name and email id should be unique, please try again.";
+                    string errorMessage = ParseAzureResponse(responce);
                     resp.StatusCode = (int)result.StatusCode;
-                    resp.StatusMessage = errormessage;
+                    resp.StatusMessage = errorMessage;
                     return Ok(resp);
                 }
             }
@@ -338,6 +341,31 @@ namespace UsersService.Api.Controllers
                 return BadRequest(responce);
             }
         }
+
+        /// <summary>
+        /// Parsing response for duplicate User
+        /// </summary>
+        /// <param name="json"></param>
+        /// <returns></returns>
+        private string ParseAzureResponse(string json)
+        {
+            dynamic responseData = JObject.Parse(json);
+            var error = responseData["error"];
+            var details = error?["details"];
+            if (details != null)
+            {
+                foreach (var detail in details)
+                {
+                    string target = (string?)detail["target"] ?? "";
+                    if (target.Contains("proxyAddresses", StringComparison.OrdinalIgnoreCase)) return "Provide an email address not already in use.";
+                    if (target.Contains("userPrincipalName", StringComparison.OrdinalIgnoreCase)) return "Select a username that is not already in use. Do not include spaces or special characters.";
+                }
+            }
+
+            return (string?)error?["message"] ?? "User creation failed.";
+        }
+
+
 
         [HttpPost]
         [Route("ResetPassword")]
