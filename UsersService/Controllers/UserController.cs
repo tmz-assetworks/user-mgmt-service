@@ -365,7 +365,7 @@ namespace UsersService.Api.Controllers
                 }
             }
 
-            return (string?)error?["message"] ?? "User creation failed.";
+            return "User creation failed.";
         }
 
 
