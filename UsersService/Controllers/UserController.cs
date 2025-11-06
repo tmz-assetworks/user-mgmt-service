@@ -347,16 +347,19 @@ namespace UsersService.Api.Controllers
         /// </summary>
         /// <param name="json"></param>
         /// <returns></returns>
-        private string ParseAzureResponse(string json)
+        private static string ParseAzureResponse(string json)
         {
-            dynamic responseData = JObject.Parse(json);
+            JObject responseData = JObject.Parse(json);
+            
             var error = responseData["error"];
-            var details = error?["details"];
-            if (details != null)
+            if (error == null) return "";
+            var details = error["details"] as JArray;
+            if (details != null && details.HasValues)
             {
                 foreach (var detail in details)
                 {
-                    string target = (string?)detail["target"] ?? "";
+
+                    string target = (string?)detail?["target"] ?? string.Empty;
                     if (target.Contains("proxyAddresses", StringComparison.OrdinalIgnoreCase)) return "Provide an email address not already in use.";
                     if (target.Contains("userPrincipalName", StringComparison.OrdinalIgnoreCase)) return "Select a username that is not already in use. Do not include spaces or special characters.";
                 }
