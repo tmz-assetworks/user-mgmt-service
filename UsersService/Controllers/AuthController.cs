@@ -13,6 +13,7 @@ using Serilog;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Runtime;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
@@ -34,12 +35,10 @@ namespace UsersService.Api.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly IConfiguration _configuration;
         private readonly IConfiguration _baseconfiguration;
         private readonly IMediator _mediator;
         protected readonly UsersService.Infrastructure.DBContext.DBContextCore _dbContext;
         private static Random random = new Random();
-        string JSONString = String.Empty;
         private readonly IConfidentialClientApplication _capp;
 
         string getjson(object res)
@@ -62,7 +61,6 @@ namespace UsersService.Api.Controllers
         {
             _dbContext = dbContext;
             _baseconfiguration = configuration;
-            _configuration = configuration;
             _mediator = mediator;
             Dictionary<string, string> myConfiguration = new Dictionary<string, string>
                 {
@@ -90,6 +88,28 @@ namespace UsersService.Api.Controllers
             .WithClientSecret(_baseconfiguration["AzureAd:clientSecret"])
             .WithAuthority(authority)
             .Build();
+        }
+
+        /// <summary>
+        /// creatting API to get time out and warning on ui
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("SessionTime")]
+        public IActionResult GetSessionConfig()
+        {
+            var timeoutEnv = Environment.GetEnvironmentVariable("TIMEOUT_MINUTES");
+            var warningEnv = Environment.GetEnvironmentVariable("WARNING_MINUTES");
+
+            int timeoutMinutes = int.TryParse(timeoutEnv, out var t) ? t : 60;
+            int warningMinutes = int.TryParse(warningEnv, out var w) ? w : 1;
+
+            return Ok(new
+            {
+                TimeoutMinutes = timeoutMinutes,
+                WarningMinutes = warningMinutes
+            });
         }
 
         [HttpPost]
@@ -248,74 +268,6 @@ namespace UsersService.Api.Controllers
             }
 
         }
-        //[HttpGet]
-        //[Route("VerifyUser")]
-        //public async Task<IActionResult> VerifyUser(string emailid)
-        //{
-
-        //    string callingMethod = APIConstant.CreateNotificationWithoutToken;
-        //    TaskNotificationRequest taskNotificationRequest = new TaskNotificationRequest();
-        //    MailResponse mailresponse = new MailResponse();
-        //    var userprincipal = await Username(emailid);
-        //    string responce = string.Empty;
-        //    string rotp = Extensions.Getrandomnumber().ToString();
-        //    var result = await _mediator.Send(new UpdateOtpQuery(userprincipal.useremail, rotp));
-        //    if (string.IsNullOrEmpty(emailid))
-        //    {
-        //        responce = @"{""StatusCode"":""400"",""Message"":""" + "Username blank" + @""",""data"": [{""token"":""" + null + @"""}]}";
-        //        return BadRequest(responce);
-
-        //    }
-        //    try
-        //    {
-        //        UsersService.Api.Mail.MailService mailService = new UsersService.Api.Mail.MailService(_baseconfiguration, _dbContext);
-        //        mailresponse = mailService.SendEmailUserVerify(emailid, rotp, userprincipal.name);
-        //        HttpClient httpClient = new HttpClient();
-        //        // StringContent stringContent = new StringContent(JsonSerializer.Serialize<UserNModel>(userN), Encoding.UTF8, "application/json");
-        //        httpClient.DefaultRequestHeaders.Authorization = (new AuthenticationHeaderValue("Bearer", GetAccessToken()));
-        //        HttpResponseMessage httpResponseMessage = await httpClient.GetAsync(string.Concat("https://graph.microsoft.com/v1.0/users/", userprincipal.useremail));
-        //        //------insert notification-------------
-        //        taskNotificationRequest.category = "Email";
-        //        taskNotificationRequest.messagetype = mailresponse.Subject;
-        //        taskNotificationRequest.content = mailresponse.Body;
-        //        taskNotificationRequest.ipaddress = "192.186.178.07";
-        //        taskNotificationRequest.userId = userprincipal.objid;
-
-        //        Microsoft.AspNetCore.Mvc.Formatters.MediaTypeCollection myContentTypes = new Microsoft.AspNetCore.Mvc.Formatters.MediaTypeCollection { System.Net.Mime.MediaTypeNames.Application.Json };
-        //        responce = await httpResponseMessage.Content.ReadAsStringAsync();
-        //        if (httpResponseMessage.IsSuccessStatusCode)
-        //        {
-
-        //            responce = @"{""StatusCode"":""200"",""Message"":""Verify Success"",""data"":" + responce + "}";
-        //            try
-        //            {
-        //                StringContent httpContent = new StringContent(JsonConvert.SerializeObject(taskNotificationRequest), Encoding.UTF8, "application/json");
-        //                HttpResponseMessage response = await Helper.GetCallAssetWithBody1APIAsync(callingMethod, httpContent);
-        //            }
-        //            catch (Exception ex)
-        //            {
-        //                Log.Information("error occurred :" + ex.Message);
-        //                return Ok(responce);
-        //            }
-
-        //            return Ok(responce);
-        //        }
-        //        else
-        //        {
-        //            responce = @"{""StatusCode"":""400"",""Message"":""User not found"",""data"":" + responce + "}";
-
-        //            return BadRequest(responce);
-        //        }
-        //    }
-
-        //    catch (Exception ex)
-        //    {
-        //        Log.Information("error occurred :" + ex.Message);
-        //        responce = @"{""StatusCode"":""400"",""Message"":""" + "Bad Request ," + ex.Message.ToString() + @"""}";
-        //        return BadRequest(responce);
-        //    }
-
-        //}
 
         [HttpGet]
         [Route("VerifyUser")]
@@ -650,7 +602,7 @@ namespace UsersService.Api.Controllers
             catch (Exception ex)
             {
                 Log.Information("error occurred :" + ex.Message);
-                JSONString = "{\n  \"data\" : " + null + ",  \"StatusMessage\" : " + ex.Message.ToString() + ",\n  \"StatusCode\" : " + (int)HttpStatusCode.NotFound + " \n}";
+                string JSONString = "{\n  \"data\" : " + null + ",  \"StatusMessage\" : " + ex.Message.ToString() + ",\n  \"StatusCode\" : " + (int)HttpStatusCode.NotFound + " \n}";
             }
             return EmailResponse;
         }

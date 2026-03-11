@@ -17,7 +17,7 @@ namespace UsersService.Infrastructure.Repositories.Customer
             _tokenbase = tokenBase;
         }
 
-        public async Task<AllCustomerResp> GetByIdCustomers(string Custid)
+        public async Task<AllCustomerResp> GetByIdCustomers(string id)
         {
             AllCustomerResp allCustomerResp = new AllCustomerResp();
             var result = await (from m in _dbContext.Customers
@@ -28,7 +28,7 @@ namespace UsersService.Infrastructure.Repositories.Customer
                                 join d in _dbContext.TimeZones
                                 on m.TimeZoneID equals d.Id into detailsGroup
                                 from detail in detailsGroup.DefaultIfEmpty() // Ensures left join
-                                where (!string.IsNullOrEmpty(Custid)) ? m.Id == Convert.ToInt64(Custid) :
+                                where (!string.IsNullOrEmpty(id)) ? m.Id == Convert.ToInt64(id) :
                                       _dbContext.Users.Any(u => u.CustomerID == m.Id && u.ObjectId == _tokenbase.getcustomerId())
                                 select new customerbyID
                                 {

@@ -32,7 +32,6 @@ namespace UsersService.Api.Controllers
         private readonly IConfiguration _baseconfiguration;
         protected readonly UsersService.Infrastructure.DBContext.DBContextCore _dbContext;
         TokenBase _tokenBase;
-        string JSONString = String.Empty;
         public CustomerController(IMediator mediator, ILogger<CustomerController> logger, TokenBase token, IConfiguration baseconfiguration, UsersService.Infrastructure.DBContext.DBContextCore dbContext)
         {
             _dbContext = dbContext;
@@ -153,7 +152,7 @@ namespace UsersService.Api.Controllers
             catch (Exception ex)
             {
                 Log.Information("error occurred :" + ex.Message);
-                JSONString = "{\n  \"data\" : " + null + ",  \"StatusMessage\" : " + ex.Message.ToString() + ",\n  \"StatusCode\" : " + (int)HttpStatusCode.NotFound + " \n}";
+                string JSONString = "{\n  \"data\" : " + null + ",  \"StatusMessage\" : " + ex.Message.ToString() + ",\n  \"StatusCode\" : " + (int)HttpStatusCode.NotFound + " \n}";
                 _logger.LogError(ex.ToString());
             }
             return allCustomerResp;
