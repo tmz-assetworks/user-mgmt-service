@@ -5,8 +5,7 @@ namespace UsersService.Api.DataModel
 {
     public static class EncryptDecrypt
     {
-        //public static bool isTesting = false;
-        public static bool isTesting { get; set; } = false;
+		public static bool isTesting { get; set; } = false;
         public static string Decrypt(string cipherText, string password)
         {
             if(isTesting)
