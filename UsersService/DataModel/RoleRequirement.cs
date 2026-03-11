@@ -29,7 +29,8 @@ namespace UsersService.Api.DataModel
 
         private void SucceedRequirementIfRolePresentAndValid(AuthorizationHandlerContext context, RoleRequirement requirement)
         {
-            
+            // This method is intentionally left empty.
+            // Role validation is handled elsewhere in the authorization pipeline.
         }
     }
 }

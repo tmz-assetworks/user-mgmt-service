@@ -41,7 +41,7 @@ namespace UsersService.Api.Controllers
         private readonly ILogger<UserController> _logger;
         protected readonly UsersService.Infrastructure.DBContext.DBContextCore _dbContext;
         TokenBase _tokenBase;
-        string JSONString = String.Empty;
+        string JSONString = "";
         private readonly IWebHostEnvironment webHostEnvironment;
         private readonly IConfidentialClientApplication _app;
 

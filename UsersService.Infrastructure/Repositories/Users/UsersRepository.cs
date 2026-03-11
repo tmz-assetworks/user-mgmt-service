@@ -16,13 +16,13 @@ namespace UsersService.Infrastructure.Repositories.Assets
         {
             _tokenbase = tokenBase;
         }
-        public async Task<IEnumerable<Users>> GetUserByEmailIdPassword(string emaildId, string password)
+        public async Task<IEnumerable<Users>> GetUserByEmailIdPassword(string emailId, string password)
         {
             return await _dbContext.Users
-                .Where(m => m.EmailId == emaildId)
+                .Where(m => m.EmailId == emailId)
                 .ToListAsync();
         }
-        public async Task<GetUserResponseDT> GetByIdUser(long userid)
+        public async Task<GetUserResponseDT> GetByIdUser(long id)
         {
             GetUserResponseDT getUserResponseDT = new GetUserResponseDT();
             var result = (from m in _dbContext.Users
@@ -56,7 +56,7 @@ namespace UsersService.Infrastructure.Repositories.Assets
                               locationsId = m.OperatorUserMapper.ToList().Select(r => r.LocationId).ToList<long>(),
                               cityName = m.CityName == null ? "" : m.CityName,
                               stateName = state != null ? state.stateName : "",
-                          }).Where(x => x.Id == userid).FirstOrDefault();
+                          }).Where(x => x.Id == id).FirstOrDefault();
             if (result != null)
             {
                 getUserResponseDT.StatusCode = (int)HttpStatusCode.OK;
@@ -254,7 +254,7 @@ namespace UsersService.Infrastructure.Repositories.Assets
             }
             return updateuserResponse;
         }
-        public async Task<otpdata> Getotp(string emailid, string Otp)
+        public async Task<otpdata> Getotp(string userid, string Otp)
         {
             otpdata getotpdata = new otpdata();
             var result = await (from m in _dbContext.Users
@@ -263,19 +263,19 @@ namespace UsersService.Infrastructure.Repositories.Assets
                                     email = m.UserPrincipalName,
                                     obectId = m.ObjectId,
                                     otp = m.Otp,
-                                }).Where(x => x.email.ToLower() == emailid.ToLower() && x.otp == Otp).FirstOrDefaultAsync();
+                                }).Where(x => x.email.ToLower() == userid.ToLower() && x.otp == Otp).FirstOrDefaultAsync();
             getotpdata = result;
             return getotpdata;
         }
 
-        public async Task<otpdata> Updateotp(string EmailId, string otp)
+        public async Task<otpdata> Updateotp(string Emailid, string Otp)
         {
             Users Users = new Users();
             otpdata otpdata = new otpdata();
             try
             {
-                Users = _dbContext.Users.FirstOrDefault(m => m.UserPrincipalName.ToLower() == EmailId.ToLower());
-                Users.Otp = otp;
+                Users = _dbContext.Users.FirstOrDefault(m => m.UserPrincipalName.ToLower() == Emailid.ToLower());
+                Users.Otp = Otp;
                 Users.OtpDateTime = DateTime.Now;
                 _dbContext.Update(Users);
                 _dbContext.SaveChanges();
@@ -316,11 +316,11 @@ namespace UsersService.Infrastructure.Repositories.Assets
             }
             return getUserResponseDT;
         }
-        public async Task<EmailResponse> GetUserEmail(string Useremailid)
+        public async Task<EmailResponse> GetUserEmail(string Useremail)
         {
             EmailResponse getEmailResponse = new EmailResponse();
             var result = (from m in _dbContext.Users
-                          where (m.EmailId == Useremailid)
+                          where (m.EmailId == Useremail)
                           select new EmailResponse
                           {
                               useremail = m.UserPrincipalName,
