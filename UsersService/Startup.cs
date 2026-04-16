@@ -84,6 +84,8 @@ namespace UsersService.Api
             services.AddScoped(typeof(Core.Repositories.Base.IRepository<>), typeof(Repository<>));
             services.AddTransient<IUserRepository, UsersRepository>();
             services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(typeof(CustomerDDLHandler).GetTypeInfo().Assembly));
+            services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(typeof(DeleteUserByIdCommandHandler).GetTypeInfo().Assembly));
+
             services.AddScoped<TokenBase>();
 
 

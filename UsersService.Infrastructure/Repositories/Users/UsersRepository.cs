@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using System.Net;
 using UsersService.Core.Entities;
 using UsersService.Core.PagingHelper;
@@ -445,5 +446,42 @@ namespace UsersService.Infrastructure.Repositories.Assets
             }
             return (users);
         }
+
+        public async Task<bool> DeleteAdminOrUser(int userId)
+        {
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
+            try
+            {
+                var allowedRoleIds = new List<long> { 3, 4 };
+                // 3 = Admin, 4 = User
+
+                var canDelete = await _dbContext.UserRoles
+                    .AnyAsync(x => x.UserID == userId &&
+                                   allowedRoleIds.Contains(x.RoleID));
+
+                if (!canDelete)
+                    return false;
+
+                await _dbContext.UserRoles
+                    .Where(x => x.UserID == userId)
+                    .ExecuteDeleteAsync();
+
+                var deleted = await _dbContext.Users
+                    .Where(x => x.Id == userId)
+                    .ExecuteDeleteAsync() > 0;
+
+                await transaction.CommitAsync();
+
+                return deleted;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+       
     }
 }

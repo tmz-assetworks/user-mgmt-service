@@ -23,5 +23,8 @@ namespace UsersService.Core.Repositories.Users
         Task<GetUserProfileResponseDT> GetByProfileUser();
         Task<UsersService.Core.Entities.Users> UpdateUserPicture(UsersService.Core.Entities.Users users);
         Task<UsersService.Core.Entities.Users> UpdateUserProfile(UsersService.Core.Entities.Users users);
+        Task<bool> DeleteAdminOrUser(int userId);
+
+
     }
 }
