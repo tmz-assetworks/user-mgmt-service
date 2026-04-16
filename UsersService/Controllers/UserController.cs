@@ -511,6 +511,44 @@ namespace UsersService.Api.Controllers
             }
         }
 
+        [HttpDelete("DeleteUserById/{userId:int}")]
+        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<BaseResponse>> DeleteUserById(int userId)
+        {
+            try
+            {
+                var deleted = await _mediator.Send(new DeleteUserByIdCommand
+                {
+                    UserId = userId
+                });
+
+                if (!deleted)
+                {
+                    return BadRequest(new BaseResponse
+                    {
+                        StatusCode = StatusCodes.Status400BadRequest,
+                        StatusMessage = "Only Admin and User can be deleted"
+                    });
+                }
+
+                return Ok(new BaseResponse
+                {
+                    StatusCode = StatusCodes.Status200OK,
+                    StatusMessage = "User deleted successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error occurred while deleting user");
+                return BadRequest(new BaseResponse
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    StatusMessage = "Delete failed"
+                });
+            }
+        }
+
         [HttpGet("UserbyobjectID")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<GetUserobjectbyidDT> GetUserByobjectid(string objectid)

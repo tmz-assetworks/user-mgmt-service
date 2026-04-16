@@ -135,4 +135,11 @@ namespace UsersService.Core.Response
         public long Id { get; set; }
         public string OTP { get; set; }
     }
+
+    public class BaseResponse
+    {
+        public int StatusCode { get; set; }
+        public string? StatusMessage { get; set; }
+    }
+
 }
