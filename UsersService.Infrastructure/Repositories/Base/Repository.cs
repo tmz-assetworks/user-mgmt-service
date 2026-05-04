@@ -33,29 +33,30 @@ namespace UsersService.Infrastructure.Repositories.Repository
         }
         public async Task<T> UpdateAsync(T entity, long id)
         {
-             var entry = _dbContext.Set<T>().Find(id);
+            var entry = _dbContext.Set<T>().Find(id);
             _dbContext.Entry(entry).CurrentValues.SetValues(entity);
             await _dbContext.SaveChangesAsync();
             return entity;
         }
-        public async Task<T> DeleteUserAsync(T entity, long id,string types)
+        public async Task<T> DeleteUserAsync(T entity, long id, string types)
         {
             if (types == "CUSTOMER")
             {
-                Customers old = entity as Customers;
-                Customers u = _dbContext.Set<Customers>().Find(id);
-                u.isActive = old.isActive;
-                _dbContext.Entry(u);              
+                var existing = await _dbContext.Set<Customers>().FindAsync(id);
+                if (existing == null) return entity;
+
+                _dbContext.Set<Customers>().Remove(existing);
             }
-            else if(types == "USER")
+            else if (types == "USER")
             {
-                Users old = entity as Users;
-                Users u = _dbContext.Set<Users>().Find(id);
-                u.IsActive = old.IsActive;
-                _dbContext.Entry(u);                
+                var existing = await _dbContext.Set<Users>().FindAsync(id);
+                if (existing == null) return entity;
+
+                _dbContext.Set<Users>().Remove(existing);
             }
+
             await _dbContext.SaveChangesAsync();
-            return entity;
+            return entity; // keeping as per your requirement
         }
     }
 }
