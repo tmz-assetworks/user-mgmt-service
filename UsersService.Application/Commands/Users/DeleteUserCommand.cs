@@ -6,5 +6,6 @@ namespace UsersService.Application.Commands.Users
     {
         public long Id { get; set; }        
         public bool IsActive { get; set; }
+        public string? Activation { get; set; }
     }
 }
